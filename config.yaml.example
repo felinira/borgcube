@@ -1,0 +1,8 @@
+authorized_keys_file: './storage/home/.ssh/authorized_keys'
+storage_path: './storage'
+default_repo_quota_gb: '100'
+default_user_quota_gb: '500'
+username: 'borg'
+borg_executable: 'borg'
+admin_contact: 'borg <borg@example.net>'
+server_name: 'borgcube'
