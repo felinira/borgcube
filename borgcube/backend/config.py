@@ -1,7 +1,21 @@
 import yaml
+import os
 
-CONFIG_PATH = 'config.yaml'
+
+class ConfigFileDoesNotExistError(Exception):
+    pass
 
 
-with open(CONFIG_PATH, 'r') as yamlfile:
-    cfg = yaml.load(yamlfile, Loader=yaml.CLoader)
+CONFIG_PATH = ['config.yaml', '/etc/borgcube/config.yaml']
+
+configfilename = None
+for path in CONFIG_PATH:
+    if os.path.isfile(path):
+        configfilename = path
+        break
+
+if configfilename:
+    with open(configfilename, 'r') as yamlfile:
+        cfg = yaml.safe_load(yamlfile)
+else:
+    raise ConfigFileDoesNotExistError()
