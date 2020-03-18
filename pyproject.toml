@@ -24,4 +24,4 @@ from = {format = "poetry", path = "pyproject.toml"}
 to = {format = "setuppy", path = "setup.py"}
 
 [tool.poetry.scripts]
-borgcube = 'borgcube.borgcube:main'
+borgcube = 'borgcube.main:main'

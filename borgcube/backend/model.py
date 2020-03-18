@@ -211,7 +211,6 @@ class Repository(LockableObject):
             if count >= user.max_repo_count:
                 raise DatabaseError("Too many repositories")
             repo = cls._create(user=user, name=repo_name, _quota_gb=quota_gb)
-        print(repo)
         return repo
 
     @classmethod
@@ -231,6 +230,7 @@ class Repository(LockableObject):
                 _storage.delete_repo(user.name, name)
                 raise
             RepoLog.log(repo, LogOperation.CREATE_REPO, name)
+        return repo
 
     def delete_instance(self, **kwargs):
         with _db.atomic():
