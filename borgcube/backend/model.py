@@ -47,7 +47,7 @@ class LogOperationField(SmallIntegerField):
 
 class SSHKeyField(CharField):
     @staticmethod
-    def __parse_ssh_key(key_string: str):
+    def parse_ssh_key(key_string: str):
         try:
             key = SSHKey.from_pubkey_line(key_string)
             if not key.comment:
@@ -59,8 +59,6 @@ class SSHKeyField(CharField):
     def db_value(self, ssh_key: SSHKey):
         if ssh_key is None:
             return None
-        if isinstance(ssh_key, str):
-            ssh_key = self.__parse_ssh_key(ssh_key)
         str_value = ssh_key.to_pubkey_line()
         return super().db_value(str_value)
 
@@ -68,7 +66,7 @@ class SSHKeyField(CharField):
         str_value = super().python_value(value)
         if str_value is None:
             return None
-        return SSHKeyField.__parse_ssh_key(str_value)
+        return SSHKeyField.parse_ssh_key(str_value)
 
 
 class BaseModel(Model):
@@ -109,13 +107,33 @@ class User(LockableObject):
     email = CharField(unique=True)
     max_repo_count = SmallIntegerField(default=10)
     quota_gb = IntegerField(default=_cfg['default_repo_quota_gb'])
-    ssh_key = SSHKeyField(null=True)
-    backup_ssh_key = SSHKeyField(null=True)
+    _ssh_key = SSHKeyField(null=True, column_name='ssh_key')
+    _backup_ssh_key = SSHKeyField(null=True, column_name='backup_ssh_key')
     repos = None  # for type hinting
 
     @property
     def path(self):
         return _storage.user_path(self.name)
+
+    @property
+    def ssh_key(self):
+        return self._ssh_key
+
+    @ssh_key.setter
+    def ssh_key(self, key):
+        if isinstance(key, str):
+            key = SSHKeyField.parse_ssh_key(key)
+        self._ssh_key = key
+
+    @property
+    def backup_ssh_key(self):
+        return self._backup_ssh_key
+
+    @backup_ssh_key.setter
+    def backup_ssh_key(self, key):
+        if isinstance(key, str):
+            key = SSHKeyField.parse_ssh_key(key)
+        self._backup_ssh_key = key
 
     @classmethod
     def new(cls, name: str, email: str, quota_gb: int = None) -> 'User':
@@ -192,12 +210,32 @@ class Repository(LockableObject):
     _quota_gb = IntegerField(column_name='quota', default=500)
     size_gb = IntegerField(default=0, null=True)
     last_session_success = BooleanField(default=True)
-    append_ssh_key = SSHKeyField(null=True)
-    rw_ssh_key = SSHKeyField(null=True)
+    _append_ssh_key = SSHKeyField(null=True, column_name='append_ssh_key')
+    _rw_ssh_key = SSHKeyField(null=True, column_name='rw_ssh_key')
 
     @property
     def path(self):
         return _storage.repo_path(self.user.name, self.name)
+
+    @property
+    def append_ssh_key(self):
+        return self._append_ssh_key
+
+    @append_ssh_key.setter
+    def append_ssh_key(self, key):
+        if isinstance(key, str):
+            key = SSHKeyField.parse_ssh_key(key)
+        self._append_ssh_key = key
+
+    @property
+    def rw_ssh_key(self):
+        return self._rw_ssh_key
+
+    @rw_ssh_key.setter
+    def rw_ssh_key(self, key):
+        if isinstance(key, str):
+            key = SSHKeyField.parse_ssh_key(key)
+        self._rw_ssh_key = key
 
     @classmethod
     def new(cls, user: User, repo_name: str, quota_gb: int = None) -> 'Repository':

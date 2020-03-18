@@ -115,6 +115,39 @@ class Shell(object):
         self.user.backup_ssh_key = None
         self.user.save()
 
+    def user_key_show(self, parser, args):
+        _echo(f"SSH key: \n")
+        if self.user.ssh_key:
+            _echo(self.user.ssh_key.to_pubkey_line())
+        else:
+            _echo("<missing>")
+        if self.user.backup_ssh_key:
+            _echo("\n\nOld SSH Key: \n", fg=COLOR_FAIL)
+            _echo(self.user.backup_ssh_key.to_pubkey_line())
+            _echo("You have set a new key but didn't log in with it yet. Please log in once with your new key to "
+                  "purge your old key.", fg=COLOR_FAIL)
+        _echo("\n")
+
+    def user_key_set(self, parser, args):
+        if len(args.key) == 0:
+            raise ShellCommandError("Can't set empty user key")
+        else:
+            key = ' '.join(args.key)
+        try:
+            self.user.backup_ssh_key = self.user.ssh_key
+            self.user.ssh_key = key
+            self.user.save()
+            if key:
+                _echo(f"Successfully set ssh user key\n", fg=COLOR_SUCCESS)
+                _echo(f"Your old key is still valid. Please log in once with your new key to verify it.\n")
+            else:
+                _echo(f"Successfully cleared ssh user key\n", fg=COLOR_SUCCESS)
+        except DatabaseError as e:
+            raise ShellCommandError(f"Can't set key: {e}\n")
+        authorized_keys_file = AuthorizedKeysFile(User.get_all())
+        authorized_keys_file.save_atomic()
+
+
     def repo_show(self, parser, args):
         repo = args.repo
         _echo("Repo information:\n")
@@ -186,7 +219,7 @@ class Shell(object):
             if args.key_type == 'append':
                 old_key = args.repo.append_ssh_key
                 args.repo.append_ssh_key = key
-                if args.repo.rw_ssh_key.fingerprint == args.repo.append_ssh_key.fingerprint:
+                if args.repo.rw_ssh_key and args.repo.rw_ssh_key.fingerprint == args.repo.append_ssh_key.fingerprint:
                     args.repo.append_ssh_key = old_key
                     raise ShellCommandError(f"Can't set repo '{args.repo.name}' append key to same value as read/write "
                                             f"key. If you only want to use one key you only need to set the read/write "
@@ -195,7 +228,7 @@ class Shell(object):
             else:
                 old_key = args.repo.rw_ssh_key
                 args.repo.rw_ssh_key = key
-                if args.repo.rw_ssh_key.fingerprint == args.repo.append_ssh_key.fingerprint:
+                if args.repo.append_ssh_key and args.repo.append_ssh_key.fingerprint == args.repo.rw_ssh_key.fingerprint:
                     args.repo.rw_ssh_key = old_key
                     raise ShellCommandError(f"Can't set repo '{args.repo.name}' read/Write key to same value as append "
                                             f"key. If you only want to use one key you only need to set the read/write "
@@ -236,8 +269,21 @@ class Shell(object):
         parse_exit = subparsers.add_parser('exit', aliases=['quit', 'q'], help='Exit shell')
         parse_exit.set_defaults(func=Shell.exit)
 
-        parse_user_info = subparsers.add_parser('user', help='user information')
+        parse_user = subparsers.add_parser('user', help='user commands')
+        parse_user.set_defaults(func=self.user_info)
+
+        user_subparsers = parse_user.add_subparsers(required=False)
+
+        parse_user_info = user_subparsers.add_parser('info', help='user information')
         parse_user_info.set_defaults(func=self.user_info)
+
+        parse_user_key = user_subparsers.add_parser('key', help='get/set user shell ssh key')
+        parse_user_key.set_defaults(func=self.user_key_show)
+
+        user_key_subparsers = parse_user_key.add_subparsers(required=False)
+        parse_user_key_set = user_key_subparsers.add_parser('set', help='set user ssh key')
+        parse_user_key_set.add_argument('key', nargs="*", help='SSH key')
+        parse_user_key_set.set_defaults(func=self.user_key_set, key_type='rw')
 
         parse_repo = subparsers.add_parser('repo', help='repo commands')
         parse_repo.set_defaults(func=self.repo_list)

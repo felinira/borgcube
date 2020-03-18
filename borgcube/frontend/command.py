@@ -134,7 +134,7 @@ class Command(object):
         # Now we need to fake an environment for the shell
         print(f"Launching shell for user: '{user.name}'")
         self.env = {
-            f'BORGCUBE_KEY_TYPE': AuthorizedKeyType.USER.value,
+            f'BORGCUBE_KEY_TYPE': AuthorizedKeyType.USER_BACKUP.value,
             f'BORGCUBE_USER': user.id,
             f'REMOTE_USER': _cfg['username'],
             f'SSH_CONNECTION': '127.0.0.1'
