@@ -22,7 +22,7 @@ setup(
     author_email='code@felinira.net',
     license='AGPL-3.0-or-later',
     entry_points={"console_scripts": ["borgcube = borgcube.borgcube:main"]},
-    packages=['borgcube'],
+    packages=['borgcube', 'borgcube.backend', 'borgcube.frontend'],
     package_dir={"": "."},
     package_data={},
     install_requires=['atomicwrites==1.*,>=1.3.0', 'colored==1.*,>=1.4.2', 'peewee==3.*,>=3.13.1', 'pyyaml==5.*,>=5.3.0', 'sshkeys==0.*,>=0.5.0'],
