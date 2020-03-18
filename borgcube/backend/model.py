@@ -2,7 +2,7 @@ import datetime
 import os
 from peewee import *
 from peewee import IntegerField
-from sshkeys import Key as SSHKey
+from sshpubkeys import SSHKey, InvalidKeyError
 from contextlib import contextmanager
 from enum import Enum
 import re
@@ -49,17 +49,18 @@ class SSHKeyField(CharField):
     @staticmethod
     def parse_ssh_key(key_string: str):
         try:
-            key = SSHKey.from_pubkey_line(key_string)
+            key = SSHKey(key_string)
+            key.parse()
             if not key.comment:
                 raise ValueError("No name set. Please add a name to your key.")
             return key
-        except ValueError as err:
+        except InvalidKeyError as err:
             raise DatabaseError(f"Invalid SSH key: {err}")
 
     def db_value(self, ssh_key: SSHKey):
         if ssh_key is None:
             return None
-        str_value = ssh_key.to_pubkey_line()
+        str_value = ssh_key.keydata
         return super().db_value(str_value)
 
     def python_value(self, value):

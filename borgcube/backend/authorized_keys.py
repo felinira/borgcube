@@ -35,22 +35,22 @@ class AuthorizedKeysFile(object):
             if user.ssh_key:
                 s += f'# USER KEY\n'
                 s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.USER)} '
-                s += f'{user.ssh_key.to_pubkey_line()}\n'
+                s += f'{user.ssh_key.keydata}\n'
             if user.backup_ssh_key:
                 s += f'# USER BACKUP KEY\n'
                 s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.USER_BACKUP)} '
-                s += f'{user.backup_ssh_key.to_pubkey_line()}\n'
+                s += f'{user.backup_ssh_key.keydata}\n'
             s += '\n'
             for repo in user.repos:
                 s += f'## REPO: {repo.name}\n'
                 if repo.append_ssh_key:
                     s += f'# Append key\n'
                     s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.REPO_APPEND, repo=repo)} '
-                    s += f'{repo.append_ssh_key.to_pubkey_line()}\n'
+                    s += f'{repo.append_ssh_key.keydata}\n'
                 if repo.rw_ssh_key:
                     s += f'# R/W key\n'
                     s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.REPO_RW, repo=repo)} '
-                    s += f'{repo.rw_ssh_key.to_pubkey_line()}\n'
+                    s += f'{repo.rw_ssh_key.keydata}\n'
             s += '\n'
             return s
 

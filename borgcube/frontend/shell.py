@@ -118,12 +118,12 @@ class Shell(object):
     def user_key_show(self, parser, args):
         _echo(f"SSH key: \n")
         if self.user.ssh_key:
-            _echo(self.user.ssh_key.to_pubkey_line())
+            _echo(self.user.ssh_key.keydata)
         else:
             _echo("<missing>")
         if self.user.backup_ssh_key:
             _echo("\n\nOld SSH Key: \n", fg=COLOR_FAIL)
-            _echo(self.user.backup_ssh_key.to_pubkey_line())
+            _echo(self.user.backup_ssh_key.keydata)
             _echo("You have set a new key but didn't log in with it yet. Please log in once with your new key to "
                   "purge your old key.", fg=COLOR_FAIL)
         _echo("\n")
@@ -200,12 +200,12 @@ class Shell(object):
     def repo_keys_show(self, parser, args):
         _echo(f"Append SSH key:\n")
         if args.repo.append_ssh_key:
-            _echo(args.repo.append_ssh_key.to_pubkey_line())
+            _echo(args.repo.append_ssh_key.keydata)
         else:
             _echo("<missing>")
         _echo("\n\nRead/write SSH Key:\n")
         if args.repo.rw_ssh_key:
-            _echo(args.repo.rw_ssh_key.to_pubkey_line())
+            _echo(args.repo.rw_ssh_key.keydata)
         else:
             _echo("<missing>")
         _echo("\n")
