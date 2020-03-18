@@ -1,5 +1,6 @@
 storage/
 config.yaml
+deploy.sh
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
