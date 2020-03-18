@@ -53,9 +53,9 @@ class Command(object):
         return env
 
     def _parse_user(self):
-        if 'REMOTE_USER' not in self.env:
-            raise CommandEnvironmentError(f"Your SSH server does not set REMOTE_USER. This is required.")
-        if self.env['REMOTE_USER'] != _cfg['username']:
+        if 'LOGNAME' not in self.env:
+            raise CommandEnvironmentError(f"Your SSH server does not set LOGNAME. This is required.")
+        if self.env['LOGNAME'] != _cfg['username']:
             raise CommandEnvironmentError(f"Connected with wrong SSH user: expected {_cfg['username']}")
         if 'BORGCUBE_USER' in self.env:
             user_id = int(self.env['BORGCUBE_USER'])
@@ -136,7 +136,7 @@ class Command(object):
         self.env = {
             f'BORGCUBE_KEY_TYPE': AuthorizedKeyType.USER_BACKUP.value,
             f'BORGCUBE_USER': user.id,
-            f'REMOTE_USER': _cfg['username'],
+            f'LOGNAME': _cfg['username'],
             f'SSH_CONNECTION': '127.0.0.1'
         }
         self.key_type = self._parse_key_type()
