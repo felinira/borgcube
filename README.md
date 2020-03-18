@@ -63,4 +63,4 @@ and you should end up in a borgcube shell.
 7. Now you can create repos: `repo create testrepo 100`
 8. And connect with borg: `borg init --encryption <enc> borg@borgcube_host:/mnt/borg/backups/test/testrepo`
 
-Consult the borg documentation for further details: (https://borgbackup.readthedocs.io/en/stable/)[Borg Documentation]
+Consult the borg documentation for further details: [Borg Documentation](https://borgbackup.readthedocs.io/en/stable/)
