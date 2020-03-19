@@ -11,26 +11,12 @@ from .storage import Storage
 from .config import cfg as _cfg
 
 from borgcube.exception import DatabaseError
+from borgcube.enum import LogOperation
 
 
 _db = SqliteDatabase(None)
 _storage = Storage(_cfg['storage_path'])
 _name_regex = reg = re.compile('^[a-zA-Z0-9_]+$')
-
-
-class LogOperation(Enum):
-    CREATE_REPO = 1
-    DELETE_REPO = 2
-    SERVE_REPO_BEGIN = 3
-    SERVE_REPO_LOG = 4
-    SERVE_REPO_SUCCESS = 5
-    SERVE_REPO_ABORT = 6
-    CHANGE_REPO_QUOTA = 7
-    CHANGE_REPO_SSH_KEY = 8
-    CREATE_USER = 9
-    DELETE_USER = 10
-    CHANGE_USER_QUOTA = 11
-    CHANGE_USER_SSH_KEY = 12
 
 
 class LogOperationField(SmallIntegerField):
