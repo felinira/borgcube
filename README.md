@@ -41,7 +41,6 @@ PermitUserEnvironment yes
 Match User borg
         X11Forwarding no  
         AllowTcpForwarding no
-        PermitTTY no
         AuthorizedKeysFile /mnt/borg/authorized_keys
 ```
 *Please make sure to set the same path to authorized_keys as in config.yaml. Also check all file/folder permissions against your SSH security policy.*

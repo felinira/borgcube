@@ -10,12 +10,12 @@ class AuthorizedKeysFile(object):
     @staticmethod
     def get_key_options(user, key_type, repo=None):
         options = [
-            'restrict',
             f'environment="BORGCUBE_KEY_TYPE={key_type.value}"',
             f'environment="BORGCUBE_USER={user.id}"'
         ]
         if key_type in [AuthorizedKeyType.REPO_APPEND, AuthorizedKeyType.REPO_RW]:
             options += [
+                'restrict',
                 f'environment="BORGCUBE_REPO={repo.id}"',
                 f'command="{RemoteCommandType.BORGCUBE_COMMAND_BORG_SERVE.value}"'
             ]

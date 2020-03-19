@@ -2,6 +2,8 @@ import argparse
 # for input history functions
 import readline
 import datetime
+import sys
+
 import colored
 
 from borgcube.backend.config import cfg
@@ -337,18 +339,25 @@ class Shell(object):
                 if self.user:
                     prompt = colored.stylize_interactive(f"{self.user.name}@{cfg['server_name']}",
                                                          colored.fg(COLOR_PROMPT)) + "$ "
-                line = input(prompt).strip()
+                try:
+                    line = input(prompt).strip()
+                except KeyboardInterrupt:
+                    _echo("\n")
+                    continue
                 if line == "":
                     continue
                 try:
                     args = parser.parse_args(line.split())
                 except SystemExit:
+                    # argparse does this when parsing was not possible. We don't want that.
+                    _echo('\n')  # finish the line to allow stderr to display
+                    sys.stderr.flush()
                     continue
                 try:
                     args.func(parser, args)
                 except ShellCommandError as e:
-                    _echo(f"Error: {e}\n", fg=COLOR_FAIL)
-        except (ShellExit, EOFError, KeyboardInterrupt):
+                    _echo(f"Shell: {e}\n", fg=COLOR_FAIL)
+        except (ShellExit, EOFError):
             _echo("\nBye\n")
 
     def run(self):
