@@ -63,3 +63,23 @@ and you should end up in a borgcube shell.
 8. And connect with borg: `borg init --encryption <enc> borg@borgcube_host:/mnt/borg/backups/test/testrepo`
 
 Consult the borg documentation for further details: [Borg Documentation](https://borgbackup.readthedocs.io/en/stable/)
+
+# Troubleshooting
+
+## I can't run backup because SSH is always using my user key!
+
+This is because SSH tries all identity files by default, including the key specified by -i.
+
+To prevent this add the following option to your ~/.ssh/config.
+```
+Match borgcube_host_backup
+    IdentityFile repokey
+    IdentitiesOnly yes
+```
+
+You also need to check if you have a `Match *` directive in your SSH config. If you include `IdentityFile` directives in it you need to exclude the borgcube host from the directive like this:
+```
+Match * !borgcube_host
+    IdentityFile id_ed25519
+    ...
+```
