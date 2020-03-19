@@ -299,6 +299,9 @@ class Repository(LockableObject):
                 self._quota_gb = new_quota
                 self.save()
 
+    def calculate_repo_size(self):
+        return _storage.calculate_repo_size(self)
+
 
 class LogBase(BaseModel):
     date = DateTimeField(default=datetime.datetime.now)

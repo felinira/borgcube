@@ -123,6 +123,7 @@ class RemoteCommand(BaseCommand):
             RepoLog.log(self.repo, LogOperation.SERVE_REPO_SUCCESS, self.key_type.name)
         else:
             RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
+        self.repo.calculate_repo_size()
         return proc.returncode
 
     def _run_shell(self):
