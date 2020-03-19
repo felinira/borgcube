@@ -27,3 +27,5 @@ class LogOperation(Enum):
     DELETE_USER = 10
     CHANGE_USER_QUOTA = 11
     CHANGE_USER_SSH_KEY = 12
+    CALC_QUOTA_BEGIN = 13
+    CALC_QUOTA_END = 14

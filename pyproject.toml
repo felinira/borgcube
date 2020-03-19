@@ -12,6 +12,7 @@ colored = "^1.4.2"
 peewee = "^3.13.1"
 pyyaml = "^5.3"
 sshpubkeys = "*"
+psutil = "*"
 
 [tool.poetry.dev-dependencies]
 

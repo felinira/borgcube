@@ -12,7 +12,8 @@ from borgcube.frontend.shell import Shell
 
 from borgcube.exception import CommandEnvironmentError, \
     CommandMissingBorgcubeEnvironmentVariableError, \
-    RemoteCommandError
+    RemoteCommandError, \
+    DatabaseObjectLockedError
 
 
 class RemoteCommand(BaseCommand):
@@ -107,23 +108,29 @@ class RemoteCommand(BaseCommand):
                 '--append-only'
             ]
 
-        RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
+        try:
+            with self.repo.lock():
+                RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
 
-        proc = Popen(
-            command,
-            stderr=sys.stderr,
-            stdout=sys.stdout,
-            stdin=sys.stdin,
-            cwd=self.user.path,
-            env=self._stripped_env
-        )
+                proc = Popen(
+                    command,
+                    stderr=sys.stderr,
+                    stdout=sys.stdout,
+                    stdin=sys.stdin,
+                    cwd=self.user.path,
+                    env=self._stripped_env
+                )
 
-        proc.wait()
-        if proc.returncode == 0:
-            RepoLog.log(self.repo, LogOperation.SERVE_REPO_SUCCESS, self.key_type.name)
-        else:
-            RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
-        self.repo.calculate_repo_size()
+                proc.wait()
+                if proc.returncode == 0:
+                    RepoLog.log(self.repo, LogOperation.SERVE_REPO_SUCCESS, self.key_type.name)
+                else:
+                    RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
+                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_BEGIN, "")
+                self.repo.calculate_repo_size()
+                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_END, "")
+        except DatabaseObjectLockedError:
+            raise RemoteCommandError("Can't start borg serve: Repository is already in use.")
         return proc.returncode
 
     def _run_shell(self):

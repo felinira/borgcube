@@ -152,7 +152,6 @@ class Shell(object):
         authorized_keys_file = AuthorizedKeysFile(User.get_all())
         authorized_keys_file.save_atomic()
 
-
     def repo_show(self, parser, args):
         repo = args.repo
         _echo("Repo information:\n")
@@ -255,13 +254,13 @@ class Shell(object):
         else:
             lines = RepoLog.format_logs_for_user(self.user)
         for line in lines:
-            _echo(line)
+            _echo(line + "\n")
 
     def argparse_repo(self, repo_name):
         try:
             return Repository.get_by_name(repo_name, self.user)
-        except DoesNotExist:
-            raise argparse.ArgumentTypeError(f"Repo {repo_name} does not exist.")
+        except DatabaseError:
+            raise ShellCommandError(f"Repo {repo_name} does not exist.")
 
     def get_parser(self):
         parser = argparse.ArgumentParser(description='Borgcube Backup Server Shell', add_help=False, prog='borgcube')
@@ -333,32 +332,31 @@ class Shell(object):
 
     def loop(self):
         parser = self.get_parser()
-        try:
-            while True:
+        while True:
+            try:
                 prompt = f"{cfg['server_name']}# "
                 if self.user:
                     prompt = colored.stylize_interactive(f"{self.user.name}@{cfg['server_name']}",
                                                          colored.fg(COLOR_PROMPT)) + "$ "
-                try:
-                    line = input(prompt).strip()
-                except KeyboardInterrupt:
-                    _echo("\n")
-                    continue
+                line = input(prompt).strip()
                 if line == "":
                     continue
-                try:
-                    args = parser.parse_args(line.split())
-                except SystemExit:
-                    # argparse does this when parsing was not possible. We don't want that.
-                    _echo('\n')  # finish the line to allow stderr to display
-                    sys.stderr.flush()
-                    continue
-                try:
-                    args.func(parser, args)
-                except ShellCommandError as e:
-                    _echo(f"Shell: {e}\n", fg=COLOR_FAIL)
-        except (ShellExit, EOFError):
-            _echo("\nBye\n")
+                args = parser.parse_args(line.split())
+                args.func(parser, args)
+            except SystemExit:
+                # argparse does this when parsing was not possible. We don't want that.
+                _echo('\n')  # finish the line to allow stderr to display
+                sys.stderr.flush()
+                continue
+            except ShellCommandError as e:
+                _echo(f"Error: {e}\n", fg=COLOR_FAIL)
+                continue
+            except KeyboardInterrupt:
+                _echo("\n")
+                continue
+            except (ShellExit, EOFError):
+                _echo("\nBye\n")
+                break
 
     def run(self):
         try:
@@ -367,4 +365,3 @@ class Shell(object):
             self.loop()
         except ShellEnvironmentError as e:
             _echo(f"Error in shell environment variables: {e}\n")
-

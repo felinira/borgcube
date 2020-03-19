@@ -1,16 +1,17 @@
 import datetime
 import os
+from time import time, sleep
+import psutil
 from peewee import *
 from peewee import IntegerField
 from sshpubkeys import SSHKey, InvalidKeyError
 from contextlib import contextmanager
-from enum import Enum
 import re
 
 from .storage import Storage
 from .config import cfg as _cfg
 
-from borgcube.exception import DatabaseError
+from borgcube.exception import DatabaseError, DatabaseObjectLockedError
 from borgcube.enum import LogOperation
 
 
@@ -70,21 +71,35 @@ class BaseObject(BaseModel):
 
 
 class LockableObject(BaseObject):
-    locked = BooleanField(default=False)
+    locked = IntegerField(default=0)
 
     @contextmanager
-    def lock(self):
-        with _db.atomic():
-            if not self.locked:
-                self.locked = True
-                self.save()
+    def lock(self, timeout_sec=1800):
+        begin = time()
+        recursive = False
+        while self.locked != 0 and psutil.pid_exists(self.locked):
+            if os.getpid() == self.locked:
+                # Recursive lock
+                recursive = True
+                break
+            now = time()
+            if now - begin < timeout_sec:
+                sleep(5)
             else:
-                raise DatabaseError(f"Can't lock {self}: Object is already locked")
+                raise DatabaseObjectLockedError(f"Can't lock {self.name}: Object is already locked by pid {self.locked}"
+                                                f" for {timeout_sec}s")
+        with _db.atomic():
+            # check again because race conditions might happen
+            if self.locked == 0 or os.getpid() == self.locked:
+                self.locked = os.getpid()
+                self.save()
         try:
             yield
         finally:
-            self.locked = False
-            self.save()
+            if not recursive:
+                self.locked = 0
+                self.save()
+            # else the outer lock manager will release the lock
 
 
 class User(LockableObject):
@@ -281,7 +296,7 @@ class Repository(LockableObject):
 
     @quota_gb.setter
     def quota_gb(self, new_quota: int):
-        with self.lock():
+        with self.lock(timeout_sec=5):
             _storage.calculate_repo_size(self)
             with _db.atomic():
                 repos = Repository.select().where(Repository.user == self.user)
@@ -321,6 +336,10 @@ class LogBase(BaseModel):
 class UserLog(LogBase):
     user = ForeignKeyField(User, backref='logs')
 
+    def format_line(self):
+        date = self.date
+        return f"[{date.isoformat()}] {self.user.name} {self.operation.name} {self.data}"
+
     @classmethod
     def log(cls, user: User, operation: LogOperation, data: str):
         cls.create(user=user, operation=operation, data=data)
@@ -336,6 +355,10 @@ class UserLog(LogBase):
 
 class RepoLog(LogBase):
     repo = ForeignKeyField(Repository, backref='logs')
+
+    def format_line(self):
+        date = self.date
+        return f"[{date.isoformat()}] {self.repo.user.name} {self.operation.name} {self.repo.name} {self.data}"
 
     @classmethod
     def log(cls, repo: Repository, operation: LogOperation, data: str):
