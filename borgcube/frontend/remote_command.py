@@ -99,23 +99,22 @@ class RemoteCommand(BaseCommand):
         command = [
             _cfg['borg_executable'],
             'serve',
-            f'--restrict-to-path {self.repo.path}',
-            f'--storage-quota {self.repo.quota_gb}G'
+            '--restrict-to-path', f'{self.repo.path}',
+            f'--storage-quota', f'{self.repo.quota_gb}G'
         ]
         if self.key_type == AuthorizedKeyType.REPO_APPEND:
             command += [
                 '--append-only'
             ]
 
-        if self.key_type not in [AuthorizedKeyType.REPO_APPEND, AuthorizedKeyType.REPO_RW]:
-            RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
+        RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
 
         proc = Popen(
             command,
             stderr=sys.stderr,
             stdout=sys.stdout,
             stdin=sys.stdin,
-            cwd=self.repo.path,
+            cwd=self.user.path,
             env=self._stripped_env
         )
 
