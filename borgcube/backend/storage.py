@@ -3,6 +3,8 @@ import shutil
 import os
 import math
 
+from borgcube.exception import StorageError, StorageInconsistencyError
+
 
 def folder_size(path: str):
     total = 0
@@ -12,14 +14,6 @@ def folder_size(path: str):
         elif entry.is_dir():
             total += folder_size(entry.path)
     return total
-
-
-class StorageError(Exception):
-    pass
-
-
-class StorageInconsistencyError(StorageError):
-    pass
 
 
 class Storage(object):

@@ -69,11 +69,14 @@ class Shell(object):
             _echo(f"CONNECTED VIA BACKUP KEY. PLEASE CONNECT WITH YOUR NEW SSH KEY "
                   f"OR SET IT AGAIN VIA 'user key set'\n\n",
                   fg=COLOR_FAIL)
+        elif self.cmd.key_type == AuthorizedKeyType.ADMIN_IMPERSONATE:
+            _echo("You are impersonating this user. Please be nice.\n", fg=COLOR_PROMPT)
 
     def welcome_msg(self):
         _echo(f"Welcome to borgcube, {self.user.name}.\n")
         _echo("Enter 'help' for a command description.\n\n")
-        _echo(f"You are connected from {self.cmd.remote_ip}.\n")
+        if self.cmd.remote_ip:
+            _echo(f"You are connected from {self.cmd.remote_ip}.\n")
         _echo(f"This service is provided to you by:\n{cfg['admin_contact']}\n\n")
         self.user_quota_info()
         _echo("\n")

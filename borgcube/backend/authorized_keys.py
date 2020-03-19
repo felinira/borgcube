@@ -1,13 +1,6 @@
 from atomicwrites import atomic_write
 from borgcube.backend.config import cfg as _cfg
-from enum import Enum
-
-
-class AuthorizedKeyType(Enum):
-    USER = 1
-    USER_BACKUP = 2
-    REPO_APPEND = 3
-    REPO_RW = 4
+from borgcube.enum import AuthorizedKeyType, RemoteCommandType
 
 
 class AuthorizedKeysFile(object):
@@ -24,7 +17,11 @@ class AuthorizedKeysFile(object):
         if key_type in [AuthorizedKeyType.REPO_APPEND, AuthorizedKeyType.REPO_RW]:
             options += [
                 f'environment="BORGCUBE_REPO={repo.id}"',
-                f'command="BORGCUBE_COMMAND_BORG_SERVE"'
+                f'command="{RemoteCommandType.BORGCUBE_COMMAND_BORG_SERVE.value}"'
+            ]
+        else:
+            options += [
+                f'command="{RemoteCommandType.BORGCUBE_COMMAND_SHELL.value}"'
             ]
         return ','.join(options)
 

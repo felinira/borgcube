@@ -10,14 +10,12 @@ import re
 from .storage import Storage
 from .config import cfg as _cfg
 
+from borgcube.exception import DatabaseError
+
 
 _db = SqliteDatabase(None)
 _storage = Storage(_cfg['storage_path'])
 _name_regex = reg = re.compile('^[a-zA-Z0-9_]+$')
-
-
-class DatabaseError(Exception):
-    pass
 
 
 class LogOperation(Enum):
