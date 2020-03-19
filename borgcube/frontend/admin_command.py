@@ -13,30 +13,26 @@ class AdminCommand(BaseCommand):
         parser = argparse.ArgumentParser(description='Borgcube Backup Server')
         subparsers = parser.add_subparsers()
 
-        parse_admin = subparsers.add_parser('admin', help='admin commands')
-        parse_admin.set_defaults(func=parse_admin.print_usage)
-        parse_admin_subparsers = parse_admin.add_subparsers()
+        parse_regen = subparsers.add_parser('regen')
+        parse_regen.set_defaults(func=self._command_regen)
 
-        parse_admin_regen = parse_admin_subparsers.add_parser('regen')
-        parse_admin_regen.set_defaults(func=self._command_admin_regen)
+        parse_shell = subparsers.add_parser('shell')
+        parse_shell.set_defaults(func=self._command_shell)
+        parse_shell.add_argument('user')
 
-        parse_admin_users = parse_admin_subparsers.add_parser('shell')
-        parse_admin_users.set_defaults(func=self._command_admin_shell)
-        parse_admin_users.add_argument('user')
+        parse_users = subparsers.add_parser('users')
+        parse_users.set_defaults(func=self._command_user_list)
 
-        parse_admin_users = parse_admin_subparsers.add_parser('users')
-        parse_admin_users.set_defaults(func=self._command_admin_user_list)
+        parse_user_add = subparsers.add_parser('add')
+        parse_user_add.set_defaults(func=self._command_user_add)
+        parse_user_add.add_argument('name')
+        parse_user_add.add_argument('email')
+        parse_user_add.add_argument('quota', nargs="?")
 
-        parse_admin_user_add = parse_admin_subparsers.add_parser('add')
-        parse_admin_user_add.set_defaults(func=self._command_admin_user_add)
-        parse_admin_user_add.add_argument('name')
-        parse_admin_user_add.add_argument('email')
-        parse_admin_user_add.add_argument('quota', nargs="?")
-
-        parse_admin_user_add = parse_admin_subparsers.add_parser('delete')
-        parse_admin_user_add.set_defaults(func=self._command_admin_user_delete)
-        parse_admin_user_add.add_argument('name')
-        parse_admin_user_add.add_argument('confirm', nargs="?")
+        parse_user_delete = subparsers.add_parser('delete')
+        parse_user_delete.set_defaults(func=self._command_user_delete)
+        parse_user_delete.add_argument('name')
+        parse_user_delete.add_argument('confirm', nargs="?")
 
         return parser
 
@@ -56,12 +52,12 @@ class AdminCommand(BaseCommand):
         pass
 
     @staticmethod
-    def _command_admin_regen():
+    def _command_regen():
         authorized_keys = AuthorizedKeysFile(User.get_all())
         authorized_keys.save_atomic()
         print("Regenerated authorized_keys file")
 
-    def _command_admin_user_add(self):
+    def _command_user_add(self):
         name = self.args.name
         email = self.args.email
         quota = None
@@ -73,7 +69,7 @@ class AdminCommand(BaseCommand):
             raise AdminCommandError(e)
         user.save()
 
-    def _command_admin_user_delete(self):
+    def _command_user_delete(self):
         user = User.get_by_name(self.args.name)
         if user is None:
             raise AdminCommandError(f"The user {self.args.name} was not found.")
@@ -86,7 +82,7 @@ class AdminCommand(BaseCommand):
         else:
             raise AdminCommandError("There was an error deleting the user {self.args.name}.")
 
-    def _command_admin_user_list(self):
+    def _command_user_list(self):
         users = User.get_all()
         self._print_user_headline()
         for user in users:
@@ -97,7 +93,7 @@ class AdminCommand(BaseCommand):
         self._print_user_headline()
         self._print_user_line(user)
 
-    def _command_admin_shell(self):
+    def _command_shell(self):
         # Now we need to fake an environment for the shell
         self.key_type = AuthorizedKeyType.ADMIN_IMPERSONATE
         self.user = user = User.get_by_name(self.args.user)
