@@ -76,7 +76,8 @@ class Shell(object):
 
     def welcome_msg(self):
         _echo(f"Welcome to borgcube, {self.user.name}.\n")
-        _echo("Enter 'help' for a command description.\n\n")
+        _echo("Enter 'help' for a command description.\n")
+        _echo("Visit https://github.com/felinira/borgcube/blob/master/USER_README.md to get started.\n\n")
         if self.cmd.remote_ip:
             _echo(f"You are connected from {self.cmd.remote_ip}.\n")
         _echo(f"This service is provided to you by:\n{cfg['admin_contact']}\n\n")
