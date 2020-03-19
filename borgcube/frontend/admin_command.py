@@ -45,6 +45,11 @@ class AdminCommand(BaseCommand):
         parse_user_add.add_argument('email')
         parse_user_add.add_argument('quota', nargs="?")
 
+        parse_user_add = subparsers.add_parser('quota')
+        parse_user_add.set_defaults(func=self._command_user_quota)
+        parse_user_add.add_argument('name')
+        parse_user_add.add_argument('quota')
+
         parse_user_delete = subparsers.add_parser('delete')
         parse_user_delete.set_defaults(func=self._command_user_delete)
         parse_user_delete.add_argument('name')
@@ -108,6 +113,17 @@ class AdminCommand(BaseCommand):
             quota = int(self.args.quota)
         try:
             user = User.new(name=name, email=email, quota_gb=quota)
+        except DatabaseError as e:
+            raise AdminCommandError(e)
+        user.save()
+
+    def _command_user_quota(self):
+        quota = int(self.args.quota)
+        try:
+            user = User.get_by_name(self.args.name)
+            user.quota_gb = quota
+            user.save()
+            print(f"Successfully changed quota of user {user.name} to {user.quota_gb} GB")
         except DatabaseError as e:
             raise AdminCommandError(e)
         user.save()
