@@ -308,7 +308,7 @@ class LogBase(BaseModel):
 
     def format_line(self):
         date = self.date
-        return f"[{date.isoformat()}] {self.operation.name} {self.data}\n"
+        return f"[{date.isoformat()}] {self.operation.name} {self.data}"
 
     @classmethod
     def format_all_logs(cls):

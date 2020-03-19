@@ -1,5 +1,5 @@
 import argparse
-from borgcube.backend.model import User, DatabaseError
+from borgcube.backend.model import User, DatabaseError, UserLog, Repository, RepoLog, AdminLog
 from borgcube.backend.authorized_keys import AuthorizedKeyType, AuthorizedKeysFile
 from borgcube.exception import AdminCommandError
 from borgcube.frontend.base_command import BaseCommand
@@ -12,6 +12,22 @@ class AdminCommand(BaseCommand):
     def _parser(self):
         parser = argparse.ArgumentParser(description='Borgcube Backup Server')
         subparsers = parser.add_subparsers()
+
+        parse_log = subparsers.add_parser('log')
+        parse_log.set_defaults(func=self._command_log_read, logfile=None)
+        parse_log_subparsers = parse_log.add_subparsers()
+
+        parse_log_user = parse_log_subparsers.add_parser('user')
+        parse_log_user.set_defaults(logfile='user')
+        parse_log_user.add_argument('user', nargs='?')
+
+        parse_log_repo = parse_log_subparsers.add_parser('repo')
+        parse_log_repo.set_defaults(logfile='repo')
+        parse_log_repo.add_argument('user', nargs='?')
+        parse_log_repo.add_argument('repo', nargs='?')
+
+        parse_log_admin = parse_log_subparsers.add_parser('admin')
+        parse_log_admin.set_defaults(logfile='admin')
 
         parse_regen = subparsers.add_parser('regen')
         parse_regen.set_defaults(func=self._command_regen)
@@ -50,6 +66,33 @@ class AdminCommand(BaseCommand):
 
     def _parse_env(self):
         pass
+
+    def _command_log_read(self):
+        user = None
+        repo = None
+        if 'user' in self.args and self.args.user:
+            user = User.get_by_name(self.args.user)
+            if 'repo' in self.args and self.args.repo:
+                repo = Repository.get_by_name(self.args.repo, user)
+        if self.args.logfile == 'user':
+            if user:
+                lines = UserLog.format_logs_for_user(user)
+            else:
+                lines = UserLog.format_all_logs()
+        elif self.args.logfile == 'repo':
+            if user:
+                if repo:
+                    lines = RepoLog.format_logs_for_repo(repo)
+                else:
+                    lines = RepoLog.format_logs_for_user(user)
+            else:
+                lines = RepoLog.format_all_logs()
+        elif self.args.logfile == 'admin':
+            lines = AdminLog.format_all_logs()
+        else:
+            raise AdminCommandError("You need to specify a log to read: user, repo or admin")
+        for line in lines:
+            print(line)
 
     @staticmethod
     def _command_regen():

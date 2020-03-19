@@ -96,9 +96,6 @@ class RemoteCommand(BaseCommand):
                                  f'Are you running this via borgcube authorized_keys file?')
 
     def _run_borg_command(self):
-        if self.key_type not in [AuthorizedKeyType.REPO_APPEND, AuthorizedKeyType.REPO_RW]:
-            RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, self.key_type.name)
-
         command = [
             _cfg['borg_executable'],
             'serve',
@@ -109,6 +106,9 @@ class RemoteCommand(BaseCommand):
             command += [
                 '--append-only'
             ]
+
+        if self.key_type not in [AuthorizedKeyType.REPO_APPEND, AuthorizedKeyType.REPO_RW]:
+            RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
 
         proc = Popen(
             command,
