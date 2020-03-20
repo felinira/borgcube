@@ -126,9 +126,9 @@ class RemoteCommand(BaseCommand):
                     RepoLog.log(self.repo, LogOperation.SERVE_REPO_SUCCESS, self.key_type.name)
                 else:
                     RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
-                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_BEGIN, "")
+                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_BEGIN, f"{self.repo.size_gb} GB")
                 self.repo.calculate_repo_size()
-                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_END, "")
+                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_END, f"{self.repo.size_gb} GB")
         except DatabaseObjectLockedError:
             raise RemoteCommandError("Can't start borg serve: Repository is already in use.")
         return proc.returncode

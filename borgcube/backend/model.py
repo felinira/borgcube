@@ -358,7 +358,7 @@ class RepoLog(LogBase):
 
     def format_line(self):
         date = self.date
-        return f"[{date.isoformat()}] {self.repo.user.name} {self.operation.name} {self.repo.name} {self.data}"
+        return f"[{date.isoformat()}] {self.repo.user.name} {self.repo.name} {self.operation.name} {self.data}"
 
     @classmethod
     def log(cls, repo: Repository, operation: LogOperation, data: str):
