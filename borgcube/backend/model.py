@@ -1,4 +1,5 @@
 import datetime
+import math
 import os
 from time import time, sleep
 import psutil
@@ -11,7 +12,7 @@ import re
 from .storage import Storage
 from .config import cfg as _cfg
 
-from borgcube.exception import DatabaseError, DatabaseObjectLockedError
+from borgcube.exception import DatabaseError, DatabaseObjectLockedError, StorageError
 from borgcube.enum import LogOperation
 
 
@@ -106,7 +107,7 @@ class User(LockableObject):
     name = CharField(unique=True)
     email = CharField(unique=True)
     max_repo_count = SmallIntegerField(default=10)
-    quota_gb = IntegerField(default=_cfg['default_repo_quota_gb'])
+    quota = IntegerField(default=_cfg['default_repo_quota'])
     _ssh_key = SSHKeyField(null=True, column_name='ssh_key')
     _backup_ssh_key = SSHKeyField(null=True, column_name='backup_ssh_key')
     repos = None  # for type hinting
@@ -136,12 +137,18 @@ class User(LockableObject):
         self._backup_ssh_key = key
 
     @classmethod
-    def new(cls, name: str, email: str, quota_gb: int = None) -> 'User':
-        if quota_gb is None:
-            quota_gb = _cfg['default_user_quota_gb']
+    def new(cls, name: str, email: str, quota: int = None) -> 'User':
+        if quota is None:
+            quota = _cfg['default_user_quota']
         with _db.atomic():
-            user = User._create(name=name, email=email, quota_gb=quota_gb)
+            user = User._create(name=name, email=email, quota=quota)
         return user
+
+    def delete_instance(self, **kwargs):
+        with _db.atomic():
+            _storage.delete_user(self.name)
+            UserLog.log(self, LogOperation.DELETE_USER, str(self.name))
+            return super().delete_instance(**kwargs)
 
     @classmethod
     def _create(cls, **query):
@@ -193,22 +200,37 @@ class User(LockableObject):
     def quota_used(self) -> int:
         size = 0
         for repo in self.repos:
-            size += repo.size_gb
+            size += repo.quota_used
         return size
+
+    @property
+    def quota_used_gb(self) -> int:
+        return math.floor(self.quota_used / 1000 / 1000 / 1000)
 
     @property
     def quota_allocated(self) -> int:
         size = 0
         for repo in self.repos:
-            size += repo.quota_gb
+            size += repo.quota
         return size
+
+    @property
+    def quota_allocated_gb(self) -> int:
+        return math.floor(self.quota_allocated / 1000 / 1000 / 1000)
+
+    @property
+    def quota_gb(self) -> int:
+        return math.floor(self.quota / 1000 / 1000 / 1000)
+
+    @quota_gb.setter
+    def quota_gb(self, new_quota):
+        self.quota = new_quota * 1000 * 1000 * 1000
 
 
 class Repository(LockableObject):
     name = CharField(unique=True)
     user = ForeignKeyField(User, backref='repos')
-    _quota_gb = IntegerField(column_name='quota', default=500)
-    size_gb = IntegerField(default=0, null=True)
+    _quota = IntegerField(column_name='quota', default=500)
     last_session_success = BooleanField(default=True)
     _append_ssh_key = SSHKeyField(null=True, column_name='append_ssh_key')
     _rw_ssh_key = SSHKeyField(null=True, column_name='rw_ssh_key')
@@ -240,7 +262,7 @@ class Repository(LockableObject):
     @classmethod
     def new(cls, user: User, repo_name: str, quota_gb: int = None) -> 'Repository':
         if quota_gb is None:
-            quota_gb = _cfg['default_repo_quota_gb']
+            quota_gb = math.floor(_cfg['default_repo_quota'] / 1000 / 1000 / 1000)
         repo = None
         if len(repo_name) > 20:
             raise DatabaseError("Repository name has to be 20 characters or less")
@@ -274,12 +296,12 @@ class Repository(LockableObject):
         with _db.atomic():
             _storage.delete_repo(self.user.name, self.name)
             RepoLog.log(self, LogOperation.DELETE_REPO, str(self.name))
-            super().delete_instance(**kwargs)
+            return super().delete_instance(**kwargs)
 
     @classmethod
     def get_by_name(cls, name: str, user: User) -> 'Repository':
         try:
-            return cls.get((cls.name == name) & cls.user == user)
+            return cls.get((cls.name == name) & (cls.user == user))
         except DoesNotExist:
             raise DatabaseError(f"Repository with name '{name}' does not exist for user '{user.name}'")
 
@@ -291,31 +313,51 @@ class Repository(LockableObject):
             raise DatabaseError(f"Repository with id '{id}' does not exist")
 
     @property
-    def quota_gb(self) -> int:
-        return self._quota_gb
+    def quota(self) -> int:
+        return self._quota
+
+    @quota.setter
+    def quota(self, new_quota: int):
+        try:
+            if new_quota < 1:
+                raise DatabaseError("Quota must be bigger than 0")
+            repos = Repository.select().where(Repository.user == self.user)
+            combined_size = 0
+            for iter_repo in repos:
+                combined_size += iter_repo.quota
+            new_size = combined_size - self.quota + new_quota
+            if new_size > self.user.quota:
+                max_size = self.user.quota - (combined_size - self.quota)
+                raise DatabaseError("Proposed repo size would be too large to fit user quota. "
+                                    f"Maximum size would be {math.floor(max_size/1000/1000/1000)}")
+            if new_size < self.quota_used:
+                raise DatabaseError("Proposed repo size would be too small to fix the current repo size. "
+                                    f"Minimum size would be {self.size_gb}")
+            _storage.set_new_quota(self, new_quota)
+            self._quota = new_quota
+            self.save()
+        except StorageError as e:
+            raise DatabaseError(e)
+
+    @property
+    def quota_used(self) -> int:
+        borg_repo = _storage.get_borg_repo(self)
+        if borg_repo is None:
+            return 0
+        with borg_repo.open_no_lock():
+            return borg_repo.quota_used
+
+    @property
+    def quota_used_gb(self) -> int:
+        return math.floor(self.quota_used / 1000 / 1000 / 1000)
+
+    @property
+    def quota_gb(self):
+        return math.floor(self.quota / 1000 / 1000 / 1000)
 
     @quota_gb.setter
-    def quota_gb(self, new_quota: int):
-        with self.lock(timeout_sec=5):
-            _storage.calculate_repo_size(self)
-            with _db.atomic():
-                repos = Repository.select().where(Repository.user == self.user)
-                combined_size = 0
-                for iter_repo in repos:
-                    combined_size += iter_repo.quota_gb
-                new_size = combined_size - self.quota_gb + new_quota
-                if new_size > self.user.quota_gb:
-                    max_size = self.user.quota_gb - (combined_size - self.quota_gb)
-                    raise DatabaseError("Proposed repo size would be too large to fit user quota. "
-                                        f"Maximum size would be {max_size}")
-                if new_size < self.size_gb:
-                    raise DatabaseError("Proposed repo size would be too small to fix the current repo size. "
-                                        f"Minimum size would be {self.size_gb}")
-                self._quota_gb = new_quota
-                self.save()
-
-    def calculate_repo_size(self):
-        return _storage.calculate_repo_size(self)
+    def quota_gb(self, new_quota):
+        self.quota = new_quota * 1000 * 1000 * 1000
 
 
 class LogBase(BaseModel):

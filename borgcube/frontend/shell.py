@@ -103,8 +103,8 @@ class Shell(object):
         raise ShellExit()
 
     def user_quota_info(self):
-        _echo(f"Quota used: {self.user.quota_used}GB / {self.user.quota_gb}GB\n")
-        _echo(f"Quota alloc: {self.user.quota_allocated}GB / {self.user.quota_gb}GB\n")
+        _echo(f"Quota used: {self.user.quota_used_gb}GB / {self.user.quota_gb}GB\n")
+        _echo(f"Quota alloc: {self.user.quota_allocated_gb}GB / {self.user.quota_gb}GB\n")
 
     def user_info(self, parser, args):
         _echo(f"You are logged in as {self.user.name}\n")
@@ -168,12 +168,12 @@ class Shell(object):
         if len(self.user.repos) > 0:
             _echo(f"{'REPO':<21}{'USAGE':<10}{'QUOTA'}\n")
             for repo in self.user.repos:
-                _echo(f"{repo.name:<21}{(str(repo.size_gb) + ' GB'):<10}{repo.quota_gb} GB\n")
+                _echo(f"{repo.name:<21}{(str(repo.quota_used_gb) + ' GB'):<10}{repo.quota_gb} GB\n")
 
     def repo_quota(self, parser, args):
         if args.new_quota is not None:
             return self.repo_quota_set(parser, args)
-        _echo(f"Storage used: {(str(args.repo.size_gb) + ' GB')} / {args.repo.quota_gb} GB\n")
+        _echo(f"Storage used: {(str(args.repo.quota_used_gb) + ' GB')} / {args.repo.quota_gb} GB\n")
         _echo(f"You can change quota with 'repo quota {args.repo.name} <size in GB>'\n")
 
     def repo_quota_set(self, parser, args):
@@ -291,7 +291,7 @@ class Shell(object):
         parse_user_key_set.set_defaults(func=self.user_key_set, key_type='rw')
 
         parse_repo = subparsers.add_parser('repo', help='repo commands')
-        parse_repo.set_defaults(func=self.repo_list)
+        parse_repo.set_defaults(func=self.repo_list, new_quota=None)
 
         repo_subparsers = parse_repo.add_subparsers(required=False)
         parse_repo_show = repo_subparsers.add_parser('show', help='show repo information')

@@ -25,5 +25,5 @@ setup(
     packages=['borgcube', 'borgcube.backend', 'borgcube.frontend'],
     package_dir={"": "."},
     package_data={},
-    install_requires=['atomicwrites==1.*,>=1.3.0', 'colored==1.*,>=1.4.2', 'peewee==3.*,>=3.13.1', 'psutil', 'pyyaml==5.*,>=5.3.0', 'sshpubkeys'],
+    install_requires=['atomicwrites==1.*,>=1.3.0', 'borgbackup>=1.1', 'colored==1.*,>=1.4.2', 'peewee==3.*,>=3.13.1', 'psutil', 'pyyaml==5.*,>=5.3.0', 'sshpubkeys'],
 )

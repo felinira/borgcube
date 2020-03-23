@@ -11,6 +11,7 @@ class AdminCommand(BaseCommand):
     @property
     def _parser(self):
         parser = argparse.ArgumentParser(description='Borgcube Backup Server')
+        parser.set_defaults(func=None)
         subparsers = parser.add_subparsers()
 
         parse_log = subparsers.add_parser('log')
@@ -65,8 +66,8 @@ class AdminCommand(BaseCommand):
     def _print_user_line(user):
         print(f"{user.name:<21}"
               f"{len(user.repos):<10}"
-              f"{(str(user.quota_used) + ' GB'):<10}"
-              f"{str(user.quota_allocated) + ' GB':<10}"
+              f"{(str(user.quota_used_gb) + ' GB'):<10}"
+              f"{str(user.quota_allocated_gb) + ' GB':<10}"
               f"{user.quota_gb} GB")
 
     def _parse_env(self):
@@ -108,11 +109,13 @@ class AdminCommand(BaseCommand):
     def _command_user_add(self):
         name = self.args.name
         email = self.args.email
-        quota = None
+        if '@' not in email:
+            raise AdminCommandError(f'Not a valid email address: {email}')
+        quota = self.args.quota
         if self.args.quota:
-            quota = int(self.args.quota)
+            quota = int(self.args.quota) * 1000 * 1000 * 1000
         try:
-            user = User.new(name=name, email=email, quota_gb=quota)
+            user = User.new(name=name, email=email, quota=quota)
         except DatabaseError as e:
             raise AdminCommandError(e)
         user.save()
@@ -139,7 +142,7 @@ class AdminCommand(BaseCommand):
         if user.delete_instance():
             print(f"Successfully deleted user {self.args.name}")
         else:
-            raise AdminCommandError("There was an error deleting the user {self.args.name}.")
+            raise AdminCommandError(f"There was an error deleting the user {self.args.name}.")
 
     def _command_user_list(self):
         users = User.get_all()

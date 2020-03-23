@@ -1,19 +1,89 @@
+from contextlib import contextmanager
 from pathlib import Path
 import shutil
-import os
-import math
 
+import os
+from borg.repository import Repository
+from borg.helpers import Error
+from borg.locking import LockError
+from borg.logger import setup_logging
+from borg.helpers import msgpack
 from borgcube.exception import StorageError, StorageInconsistencyError
 
 
-def folder_size(path: str):
-    total = 0
-    for entry in os.scandir(path):
-        if entry.is_file():
-            total += entry.stat().st_size
-        elif entry.is_dir():
-            total += folder_size(entry.path)
-    return total
+setup_logging()
+
+
+class BorgRepo(object):
+    def __init__(self, path, lock_wait=None):
+        self.path = path
+        self.__repo = None
+        if Repository.is_repository(path):
+            self.__repo = Repository(path, lock_wait=lock_wait, create=False)
+
+    @property
+    def quota_used(self):
+        if self.is_repo:
+            return self._get_borg_repo_hints()[b'storage_quota_use']
+        return 0
+
+    @property
+    def is_repo(self):
+        return self.__repo is not None
+
+    @property
+    def __quota(self):
+        return self.__repo.config.getint('repository', 'storage_quota', fallback=0)
+
+    @__quota.setter
+    def __quota(self, new_quota):
+        self.__repo.config.set('repository', 'storage_quota', str(new_quota))
+        self.__repo.save_config(self.__repo.path, self.__repo.config)
+
+    def _get_borg_repo_hints(self):
+        if self.is_repo:
+            transaction_id = self.__repo.get_index_transaction_id()
+            hints_path = os.path.join(self.path, 'hints.%d' % transaction_id)
+            with open(hints_path, 'rb') as fd:
+                hints = msgpack.unpack(fd)
+            return hints
+        return None
+
+    @contextmanager
+    def open_locked(self):
+        try:
+            self.__repo.open(self.__repo.path, exclusive=True)
+            yield
+        except LockError as e:
+            raise StorageError(e)
+        except Error as e:
+            raise StorageError(e)
+        finally:
+            self.__repo.close()
+
+    @contextmanager
+    def open_no_lock(self):
+        try:
+            self.__repo.open(self.__repo.path, exclusive=False, lock=False)
+            yield
+        except Error as e:
+            raise StorageError(e)
+        finally:
+            self.__repo.close()
+
+    def set_new_quota_safe(self, new_quota):
+        if not self.__repo:
+            raise StorageError("Repository has not been initialized yet")
+        with self.open_locked():
+            if self.quota_used < new_quota:
+                self.__quota = new_quota
+            else:
+                raise StorageError(f"Can't set new quota: New quota too small. "
+                                   f"Smallest quota would be {self.quota_used}")
+
+    def get_quota_used(self):
+        if not self.__repo:
+            raise StorageError("Repository has not been initialized yet")
 
 
 class Storage(object):
@@ -48,11 +118,24 @@ class Storage(object):
     def delete_repo(self, user_name, repo_name):
         shutil.rmtree(self.repo_path(user_name, repo_name))
 
-    def calculate_repo_size(self, repo):
-        size_b = folder_size(str(self.repo_path(repo.user.name, repo.name)))
-        size_gb = math.ceil(size_b / 1000000000)
-        repo.size_gb = size_gb
-        repo.save()
+    def get_borg_repo(self, repo):
+        borg_repo = BorgRepo(self.repo_path(repo.user.name, repo.name))
+        if borg_repo.is_repo:
+            return borg_repo
+        return None
+
+    def get_quota_used(self, repo):
+        borg_repo = self.get_borg_repo(repo)
+        with borg_repo.open_no_lock():
+            return borg_repo.quota_used
+
+    def set_new_quota(self, repo, new_quota):
+        borg_repo = self.get_borg_repo(repo)
+        if borg_repo is None:
+            return
+        with borg_repo.open_locked():
+            if borg_repo.quota_used <= new_quota:
+                borg_repo.set_new_quota_safe(new_quota)
 
     def assert_consistency_for_user(self, user):
         user_path = self.user_path(user.name)
