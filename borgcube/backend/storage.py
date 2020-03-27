@@ -15,7 +15,7 @@ setup_logging()
 
 
 class BorgRepo(object):
-    def __init__(self, path, lock_wait=None):
+    def __init__(self, path, lock_wait=5):
         self.path = path
         self.__repo = None
         if Repository.is_repository(path):
@@ -52,7 +52,7 @@ class BorgRepo(object):
     @contextmanager
     def open_locked(self):
         try:
-            self.__repo.open(self.__repo.path, exclusive=True)
+            self.__repo.open(self.__repo.path, exclusive=True, lock_wait=self.__repo.lock_wait)
             yield
         except LockError as e:
             raise StorageError(e)
