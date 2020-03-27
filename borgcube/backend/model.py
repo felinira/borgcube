@@ -388,7 +388,10 @@ class UserLog(LogBase):
 
     @classmethod
     def get_logs_for_user(cls, user):
-        return cls.select().where(cls.user == user)
+        try:
+            return cls.select().where(cls.user == user)
+        except DoesNotExist:
+            return []
 
     @classmethod
     def format_logs_for_user(cls, user):
@@ -408,11 +411,31 @@ class RepoLog(LogBase):
 
     @classmethod
     def get_logs_for_repo(cls, repo):
-        return cls.select().where(cls.repo == repo)
+        try:
+            return cls.select().where(cls.repo == repo)
+        except DoesNotExist:
+            return []
+
+    @classmethod
+    def get_logs_for_repo_with_operation(cls, repo, operation):
+        try:
+            return cls.select().where((cls.repo == repo) & (cls.operation == operation))
+        except DoesNotExist:
+            return []
+
+    @classmethod
+    def get_last_entry_for_repo_with_operation(cls, repo, operation):
+        try:
+            return cls.get_logs_for_repo_with_operation(repo, operation)[-1]
+        except DoesNotExist:
+            return None
 
     @classmethod
     def get_logs_for_user(cls, user):
-        return cls.select().join(Repository).where(cls.repo.user == user)
+        try:
+            return cls.select().join(Repository).where(cls.repo.user == user)
+        except DoesNotExist:
+            return []
 
     @classmethod
     def format_logs_for_repo(cls, repo):

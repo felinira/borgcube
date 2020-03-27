@@ -6,12 +6,12 @@ import os
 from borg.repository import Repository
 from borg.helpers import Error
 from borg.locking import LockError
-from borg.logger import setup_logging
+import borg.logger
 from borg.helpers import msgpack
 from borgcube.exception import StorageError, StorageInconsistencyError
 
 
-setup_logging()
+borg.logger.setup_logging()
 
 
 class BorgRepo(object):
