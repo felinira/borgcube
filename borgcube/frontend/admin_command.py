@@ -44,14 +44,15 @@ class AdminCommand(BaseCommand):
         parse_shell.set_defaults(func=self._command_shell)
         parse_shell.add_argument('user')
 
-        parse_users = subparsers.add_parser('users')
+        parse_users = subparsers.add_parser('user')
         parse_users.set_defaults(func=self._command_user_list)
 
-        parse_user_add = subparsers.add_parser('add')
+        parse_user_add = subparsers.add_parser('create')
         parse_user_add.set_defaults(func=self._command_user_add)
-        parse_user_add.add_argument('name')
-        parse_user_add.add_argument('email')
-        parse_user_add.add_argument('quota', nargs="?")
+        parse_user_add.add_argument('name', help="Username")
+        parse_user_add.add_argument('email', help="Email of the user")
+        parse_user_add.add_argument('quota', help="Initial quota value in gb")
+        parse_user_add.add_argument('key', nargs="*", help="SSH key for the user")
 
         parse_user_add = subparsers.add_parser('quota')
         parse_user_add.set_defaults(func=self._command_user_quota)
@@ -116,13 +117,14 @@ class AdminCommand(BaseCommand):
     def _command_user_add(self):
         name = self.args.name
         email = self.args.email
+        key = " ".join(self.args.key)
         if '@' not in email:
             raise AdminCommandError(f'Not a valid email address: {email}')
         quota = self.args.quota
         if self.args.quota:
             quota = int(self.args.quota) * 1000 * 1000 * 1000
         try:
-            user = User.new(name=name, email=email, quota=quota)
+            user = User.new(name=name, email=email, quota=quota, ssh_key_str=key)
         except DatabaseError as e:
             raise AdminCommandError(e)
         user.save()

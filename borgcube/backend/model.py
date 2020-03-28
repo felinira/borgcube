@@ -147,11 +147,12 @@ class User(LockableObject):
         self._backup_ssh_key = key
 
     @classmethod
-    def new(cls, name: str, email: str, quota: int = None) -> 'User':
+    def new(cls, name: str, email: str, quota: int = None, ssh_key_str: str = None) -> 'User':
+        ssh_key = SSHKeyField.parse_ssh_key(ssh_key_str)
         if quota is None:
             quota = _cfg['default_user_quota']
         with _db.atomic():
-            user = User._create(name=name, email=email, quota=quota)
+            user = User._create(name=name, email=email, quota=quota, ssh_key=ssh_key)
         return user
 
     def delete_instance(self, **kwargs):
