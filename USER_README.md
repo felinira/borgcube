@@ -56,7 +56,7 @@ borg init -e repokey-blake2 borg@<borgcube_host>:<repo_name>
 Substitute <borgcube_host> for your borgcube hostname and <repo_name> for your repository name. `borg init` should
 finish successfully. If not please consult your server administrator.
 
-Now use borg as usual. Consolt the [Borg documentation](https://borgbackup.readthedocs.io/en/stable/usage/create.html).
+Now use borg as usual. Consult the [Borg documentation](https://borgbackup.readthedocs.io/en/stable/usage/create.html).
 You can create a new backup by issuing:
 ```shell script
 borg [common options] create [options] borg@<borgcube_host>:<repo_name> [PATH...]
