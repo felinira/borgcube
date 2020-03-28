@@ -1,10 +1,30 @@
-authorized_keys_file: './storage/home/.ssh/authorized_keys'
+## Borgcube configuration file
+# The location where your SSH authorized_keys file is. Please see README.md
+authorized_keys_file: './storage/authorized_keys'
+
+# The location of your storage for backups. Will create a folder 'backups' inside where the backups are stored
 storage_path: './storage'
+
+# Default quota for repository and user. In Bytes
 default_repo_quota: '100000000000'
 default_user_quota: '500000000000'
+
+# The username to run borgcube as. Borgcube *will* complain if it is run from a different user to ensure consistent
+# permissions. If you run borgcube as root it will drop privileges to this user.
 username: 'borg'
+
+# The executable file for borg
 borg_executable: 'borg'
+
+# Contact information of the Server Administrator. This will be used in Reply-To headers so it needs to be a valid email
+# format
 admin_contact: 'borg <borg@example.net>'
+
+# The name of this server
 server_name: 'borgcube'
+
+# The mail address from which to send notifications
 notification_mail: 'borgcube@example.net'
+
+# Default time in days after which notifications are sent if backups are out of date
 notification_old_backups_days_default: 2
