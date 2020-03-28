@@ -125,6 +125,8 @@ class AdminCommand(BaseCommand):
             quota = int(self.args.quota) * 1000 * 1000 * 1000
         try:
             user = User.new(name=name, email=email, quota=quota, ssh_key_str=key)
+            authorized_keys_file = AuthorizedKeysFile(User.get_all())
+            authorized_keys_file.save_atomic()
         except DatabaseError as e:
             raise AdminCommandError(e)
         user.save()
