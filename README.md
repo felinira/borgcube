@@ -25,10 +25,9 @@ sudo python3 setup.py install
 
 2. Add borg system user (Debian example)
 ```shell script
-sudo adduser --system borg --shell /usr/local/bin/borgcube
+sudo adduser --system borg --shell /bin/sh
 sudo -u borg touch /home/borg/.hushlogin
 ```
-*Important: You have to set the shell of the user to borgcube, otherwise the user has full shell access.*
 
 3. Configure config.yaml.example, especially the storage directory and authorized_keys directory:
 ```shell script

@@ -6,9 +6,9 @@ from borgcube.enum import AuthorizedKeyType, RemoteCommandType
 class AuthorizedKeysFile(object):
     def __init__(self, users):
         self.users = users
+        self.command_prefix = f"{_cfg['borgcube_executable']} remote"
 
-    @staticmethod
-    def get_key_options(user, key_type, repo=None):
+    def get_key_options(self, user, key_type, repo=None):
         options = [
             f'environment="BORGCUBE_KEY_TYPE={key_type.value}"',
             f'environment="BORGCUBE_USER={user.id}"'
@@ -17,11 +17,11 @@ class AuthorizedKeysFile(object):
             options += [
                 'restrict',
                 f'environment="BORGCUBE_REPO={repo.id}"',
-                f'command="{RemoteCommandType.BORGCUBE_COMMAND_BORG_SERVE.value}"'
+                f'command="{self.command_prefix} {RemoteCommandType.BORGCUBE_COMMAND_BORG_SERVE.value}"'
             ]
         else:
             options += [
-                f'command="{RemoteCommandType.BORGCUBE_COMMAND_SHELL.value}"'
+                f'command="{self.command_prefix} {RemoteCommandType.BORGCUBE_COMMAND_SHELL.value}"'
             ]
         return ','.join(options)
 
@@ -31,22 +31,22 @@ class AuthorizedKeysFile(object):
             s += f'\n### USER: {user.name}\n'
             if user.ssh_key:
                 s += f'# USER KEY\n'
-                s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.USER)} '
+                s += f'{self.get_key_options(user, AuthorizedKeyType.USER)} '
                 s += f'{user.ssh_key.keydata}\n'
             if user.backup_ssh_key:
                 s += f'# USER BACKUP KEY\n'
-                s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.USER_BACKUP)} '
+                s += f'{self.get_key_options(user, AuthorizedKeyType.USER_BACKUP)} '
                 s += f'{user.backup_ssh_key.keydata}\n'
             s += '\n'
             for repo in user.repos:
                 s += f'## REPO: {repo.name}\n'
                 if repo.append_ssh_key:
                     s += f'# Append key\n'
-                    s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.REPO_APPEND, repo=repo)} '
+                    s += f'{self.get_key_options(user, AuthorizedKeyType.REPO_APPEND, repo=repo)} '
                     s += f'{repo.append_ssh_key.keydata}\n'
                 if repo.rw_ssh_key:
                     s += f'# R/W key\n'
-                    s += f'{AuthorizedKeysFile.get_key_options(user, AuthorizedKeyType.REPO_RW, repo=repo)} '
+                    s += f'{self.get_key_options(user, AuthorizedKeyType.REPO_RW, repo=repo)} '
                     s += f'{repo.rw_ssh_key.keydata}\n'
             s += '\n'
             return s

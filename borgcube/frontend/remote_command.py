@@ -21,9 +21,12 @@ class RemoteCommand(BaseCommand):
     @property
     def _parser(self):
         parser = argparse.ArgumentParser(description='Borgcube Backup Server')
-        parser.set_defaults(admin=False)
-        parser.add_argument('-c', dest='command', metavar='BORG SERVE COMMAND', nargs='?',
-                            help='execute borg serve', type=self._parse_remote_command)
+        parser.set_defaults(admin=False, func=Shell.usage)
+
+        subparsers = parser.add_subparsers()
+        parse_remote = subparsers.add_parser('remote')
+        parse_remote.add_argument(dest='command', metavar='BORG SERVE COMMAND', nargs='?',
+                                  help='execute borg serve', type=self._parse_remote_command)
         return parser
 
     def repo_log(self, msg):

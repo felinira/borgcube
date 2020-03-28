@@ -1,4 +1,7 @@
 ## Borgcube configuration file
+# The path to the borgcube executable
+borgcube_executable: '/usr/local/bin/borgcube'
+
 # The location where your SSH authorized_keys file is. Please see README.md
 authorized_keys_file: './storage/authorized_keys'
 
