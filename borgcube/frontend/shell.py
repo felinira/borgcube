@@ -319,7 +319,7 @@ class Shell(object):
         parse_repo_show.add_argument('repo', type=self.argparse_repo, help='name of the repository')
         parse_repo_show.set_defaults(func=self.repo_show)
 
-        parse_repo_logs = repo_subparsers.add_parser('logs', help='get logs')
+        parse_repo_logs = repo_subparsers.add_parser('log', help='get logs')
         parse_repo_logs.set_defaults(func=self.repo_logs)
         parse_repo_logs.add_argument('repo', nargs="?", type=self.argparse_repo, help='name of the repository')
 
