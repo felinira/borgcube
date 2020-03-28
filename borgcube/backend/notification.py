@@ -20,6 +20,7 @@ class EmailNotification(object):
     def __init__(self, user):
         self.user = user
         self.from_mail = _cfg['notification_mail']
+        self.reply_to = _cfg['admin_contact']
 
     def _send_mail(self, to_email, subject, body):
         msg = EmailMessage()
@@ -27,6 +28,7 @@ class EmailNotification(object):
         msg["From"] = self.from_mail
         msg["To"] = to_email
         msg['Subject'] = subject
+        msg['Reply-To'] = self.reply_to
         p = Popen(["/usr/sbin/sendmail", "-t", "-oi"], stdin=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate(msg.as_bytes())
         if p.returncode != 0:
