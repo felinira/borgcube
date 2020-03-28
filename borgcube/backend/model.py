@@ -34,7 +34,7 @@ class LogOperationField(SmallIntegerField):
 
 class SSHKeyField(CharField):
     @staticmethod
-    def parse_ssh_key(key_string: str):
+    def parse_ssh_key(key_string: str) -> SSHKey:
         try:
             key = SSHKey(key_string)
             key.parse()
@@ -44,13 +44,13 @@ class SSHKeyField(CharField):
         except InvalidKeyError as err:
             raise DatabaseError(f"Invalid SSH key: {err}")
 
-    def db_value(self, ssh_key: SSHKey):
+    def db_value(self, ssh_key: SSHKey) -> Optional[str]:
         if ssh_key is None:
             return None
         str_value = ssh_key.keydata
         return super().db_value(str_value)
 
-    def python_value(self, value):
+    def python_value(self, value) -> Optional[SSHKey]:
         str_value = super().python_value(value)
         if str_value is None:
             return None
@@ -58,17 +58,17 @@ class SSHKeyField(CharField):
 
 
 class TimeDeltaField(IntegerField):
-    def db_value(self, delta: datetime.timedelta):
+    def db_value(self, delta: datetime.timedelta) -> Optional[int]:
         return super().db_value(delta.total_seconds())
 
-    def python_value(self, value):
+    def python_value(self, value: int) -> Optional[datetime.timedelta]:
         int_value = super().python_value(value)
         return datetime.timedelta(seconds=int_value)
 
 
 class BaseModel(Model):
     @classmethod
-    def get_all(cls):
+    def get_all(cls) -> List['BaseModel']:
         return cls.select()
 
     class Meta:
@@ -368,7 +368,7 @@ class Repository(LockableObject):
         return math.floor(self.quota_used / 1000 / 1000 / 1000)
 
     @property
-    def quota_gb(self):
+    def quota_gb(self) -> int:
         return math.floor(self.quota / 1000 / 1000 / 1000)
 
     @quota_gb.setter
@@ -376,7 +376,7 @@ class Repository(LockableObject):
         self.quota = new_quota * 1000 * 1000 * 1000
 
     @property
-    def transaction_id(self):
+    def transaction_id(self) -> Optional[int]:
         return _storage.get_repo_transaction_id(self)
 
 

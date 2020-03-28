@@ -3,6 +3,8 @@ from pathlib import Path
 import shutil
 
 import os
+from typing import Optional
+
 from borg.repository import Repository
 from borg.helpers import Error
 from borg.locking import LockError
@@ -50,7 +52,7 @@ class BorgRepo(object):
         return None
 
     @property
-    def transaction_id(self):
+    def transaction_id(self) -> Optional[int]:
         return self.__repo.get_index_transaction_id()
 
     @contextmanager
