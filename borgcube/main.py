@@ -1,16 +1,41 @@
 #!/usr/bin/env python3
-import argparse
-import os
 import sys
+import pwd
+import os
 
-from borgcube.backend.model import *
 from borgcube.frontend.commandline import Commandline
+from borgcube.backend.config import cfg as _cfg
 from borgcube.exception import BorgcubeError
 
 
-def main():
+def drop_privileges():
+    uid_name = _cfg['username']
+    entry = pwd.getpwnam(uid_name)
+    uid = entry.pw_uid
+    gid = entry.pw_gid
+
+    if os.getuid() != 0:
+        # We're not root
+        if os.getuid() != uid:
+            raise BorgcubeError(f"Running as the wrong user: Expected user {uid_name}. Exiting.")
+        return
+
+    # We are root. Most likely because we are running from cron
+    # Remove group privileges
+    os.setgroups([])
+
+    # Try setting the new uid/gid
+    os.setgid(uid)
+    os.setuid(gid)
+
+    # Ensure a umask
     os.umask(0o022)
+
+
+def main():
     try:
+        drop_privileges()
+
         cmd = Commandline(os.environ.copy(), sys.argv)
         cmd.run()
     except BorgcubeError as e:
