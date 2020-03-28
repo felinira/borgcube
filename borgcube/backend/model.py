@@ -17,7 +17,6 @@ from .config import cfg as _cfg
 from borgcube.exception import DatabaseError, DatabaseObjectLockedError, StorageError
 from borgcube.enum import LogOperation
 
-
 _db = SqliteDatabase(None)
 _storage = Storage(_cfg['storage_path'])
 _name_regex = reg = re.compile('^[a-zA-Z0-9_]+$')
@@ -335,7 +334,7 @@ class Repository(LockableObject):
             if new_size > self.user.quota:
                 max_size = self.user.quota - (combined_size - self.quota)
                 raise DatabaseError("Proposed repo size would be too large to fit user quota. "
-                                    f"Maximum size would be {math.floor(max_size/1000/1000/1000)}")
+                                    f"Maximum size would be {math.floor(max_size / 1000 / 1000 / 1000)}")
             if new_size < self.quota_used:
                 raise DatabaseError("Proposed repo size would be too small to fix the current repo size. "
                                     f"Minimum size would be {self.size_gb}")
@@ -383,6 +382,12 @@ class LogBase(BaseModel):
     @classmethod
     def format_all_logs(cls):
         return [line.format_line() for line in cls.select()]
+
+    def __str__(self):
+        return self.format_line()
+
+    def __repr__(self):
+        return str(self.id)
 
 
 class UserLog(LogBase):
@@ -454,6 +459,20 @@ class RepoLog(LogBase):
     @classmethod
     def format_logs_for_user(cls, user):
         return [line.format_line() for line in cls.get_logs_for_user(user)]
+
+    '''Keeps the last 100 log entries of each type'''
+    @classmethod
+    def cleanup_logs(cls):
+        for repo in Repository.get_all():
+            for operation in LogOperation:
+                # Delete all but the last 100 entries of each operation
+                # DELETE FROM mytable WHERE ROWID IN (SELECT ROWID FROM mytable ORDER BY ROWID DESC LIMIT -1 OFFSET 100)
+                old_logs = RepoLog.select().where(
+                        (RepoLog.repo == repo) &
+                        (RepoLog.operation == operation)
+                    ).order_by(RepoLog.id.desc()).offset(100)
+                q = RepoLog.delete().where(RepoLog.id.in_(old_logs))
+                q.execute()
 
 
 class AdminLog(LogBase):

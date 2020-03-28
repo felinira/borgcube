@@ -176,6 +176,7 @@ class AdminCommand(BaseCommand):
         # Check for last successful backup date
         notification_dispatcher = NotificationDispatcher()
         notification_dispatcher.cron()
+        RepoLog.cleanup_logs()
 
     def run(self):
         if self.args.func:
