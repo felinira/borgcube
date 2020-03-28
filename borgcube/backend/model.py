@@ -155,11 +155,11 @@ class User(LockableObject):
             user = User._create(name=name, email=email, quota=quota, ssh_key=ssh_key)
         return user
 
-    def delete_instance(self, **kwargs):
+    def delete_instance(self, recursive=True, **kwargs):
         with _db.atomic():
             _storage.delete_user(self.name)
             UserLog.log(self, LogOperation.DELETE_USER, str(self.name))
-            return super().delete_instance(**kwargs)
+            return super().delete_instance(**kwargs, recursive=recursive)
 
     @classmethod
     def _create(cls, **query):
