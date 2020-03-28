@@ -245,9 +245,30 @@ class Shell(object):
             else:
                 _echo(f"Successfully cleared {args.key_type} key of '{args.repo.name}'\n", fg=COLOR_SUCCESS)
         except DatabaseError as e:
-            raise ShellCommandError(f"Can't set key: {e}\n")
+            raise ShellCommandError(f"Can't set key: {e}")
         authorized_keys_file = AuthorizedKeysFile(User.get_all())
         authorized_keys_file.save_atomic()
+
+    def repo_notification_set(self, parser, args):
+        try:
+            args.repo.max_age = datetime.timedelta(days=args.days)
+            args.repo.save()
+            _echo(f"Successfully set repository '{args.repo.name}' notification time "
+                  f"to {args.days}\n", fg=COLOR_SUCCESS)
+        except DatabaseError as e:
+            raise ShellCommandError(f"Can't set repository notification time: {e}")
+
+    def _do_repo_notification(self, repo):
+        _echo(f"Repository '{repo.name}' has notifications set to fire after '{repo.max_age.days}' days\n")
+
+    def repo_notification(self, parser, args):
+        if not args.repo:
+            for repo in Repository.get_all_by_user(self.user):
+                self._do_repo_notification(repo)
+            return
+        if args.days is not None:
+            return self.repo_notification_set(parser, args)
+        self._do_repo_notification(args.repo)
 
     def repo_logs(self, parser, args):
         if args.repo:
@@ -328,6 +349,13 @@ class Shell(object):
         parse_repo_key_rw_set = repo_keys_subparsers.add_parser('set_rw_key', help='set read write mode key')
         parse_repo_key_rw_set.add_argument('key', nargs="*", help='SSH key')
         parse_repo_key_rw_set.set_defaults(func=self.repo_key_set, key_type='rw')
+
+        parse_repo_notification = repo_subparsers\
+            .add_parser('notification_days', help='set the time after which a notification email is sent when the '
+                                                  'backup is too old')
+        parse_repo_notification.add_argument('repo', nargs="?", type=self.argparse_repo, help='repository name')
+        parse_repo_notification.add_argument('days', nargs="?", type=int, help='Days after which to send notification')
+        parse_repo_notification.set_defaults(repo=None, func=self.repo_notification)
 
         return parser
 

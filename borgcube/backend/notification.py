@@ -32,13 +32,14 @@ class EmailNotification(object):
         if p.returncode != 0:
             raise NotificationSendmailError(stderr)
 
-    def dispatch_too_old_backups_notification(self, repos: [Repository], logs: [Optional[RepoLog]], num_days: int):
+    def dispatch_too_old_backups_notification(self, repos: [Repository], logs: [Optional[RepoLog]]):
         if len(repos) == 1:
             subject = f"[{_cfg['server_name']}] 1 Backup is out of date"
         else:
             subject = f"[{_cfg['server_name']}] {len(repos)} Backups are out of date"
-        body = f"Your backups on {_cfg['server_name']} are out of date. The following repositories didn't have at" \
-               f"least one successful 'borg serve' invocation in the last {num_days}:\n\n"
+        body = f"Your backups on {_cfg['server_name']} are out of date. The following repositories didn't have at " \
+               f"least one successful 'borg serve' invocation in your configured notification time:\n\n"
+        now = datetime.now()
 
         for idx in range(len(repos)):
             repo: Repository = repos[idx]
@@ -46,12 +47,17 @@ class EmailNotification(object):
 
             body += f"* {repo.name}: "
             if log:
-                body += f"Last successful backup on {log.date}"
+                days = now - log.date
+                if days.days == 1:
+                    day_str = f"1 day"
+                else:
+                    day_str = f"{days.days} days"
+                body += f"Last successful backup {day_str} ago on {log.date}"
             else:
                 body += f"No successful backup on record"
             body += "\n"
         body += f"\nIf you have any questions please don't hesitate to contact your server administrator: " \
-                f"{_cfg['admin_contact']}\n\nWe wish you a good day. Please fix your backups."
+                f"{_cfg['admin_contact']}\n\nWe wish you a good day."
         to_email = self.user.email
         self._send_mail(to_email, subject, body)
 
@@ -62,15 +68,15 @@ class NotificationDispatcher(object):
             notification_classes = [EmailNotification]
         self.notification_classes = notification_classes
 
-    def dispatch_too_old_backups_notifications(self, users: Optional[List[User]] = None, num_days: int = 2):
+    def dispatch_too_old_backups_notifications(self, users: Optional[List[User]] = None):
         if users is None:
             users = User.get_all()
         now = datetime.now()
-        check_date = now - timedelta(days=num_days)
         for user in users:
             too_old_repos = []
             too_old_repo_logs = []
             for repo in Repository.get_all_by_user(user):
+                check_date = now - repo.max_age
                 too_old = False
                 log = None
                 if repo.creation_date < check_date:
@@ -86,7 +92,7 @@ class NotificationDispatcher(object):
             if len(too_old_repos) > 0:
                 for cls in self.notification_classes:
                     notification = cls(user)
-                    notification.dispatch_too_old_backups_notification(too_old_repos, too_old_repo_logs, num_days)
+                    notification.dispatch_too_old_backups_notification(too_old_repos, too_old_repo_logs)
 
     def cron(self):
         self.dispatch_too_old_backups_notifications()

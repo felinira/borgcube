@@ -57,6 +57,15 @@ class SSHKeyField(CharField):
         return SSHKeyField.parse_ssh_key(str_value)
 
 
+class TimeDeltaField(IntegerField):
+    def db_value(self, delta: datetime.timedelta):
+        return super().db_value(delta.total_seconds())
+
+    def python_value(self, value):
+        int_value = super().python_value(value)
+        return datetime.timedelta(seconds=int_value)
+
+
 class BaseModel(Model):
     @classmethod
     def get_all(cls):
@@ -235,6 +244,7 @@ class Repository(LockableObject):
     last_session_success = BooleanField(default=True)
     _append_ssh_key = SSHKeyField(null=True, column_name='append_ssh_key')
     _rw_ssh_key = SSHKeyField(null=True, column_name='rw_ssh_key')
+    max_age = TimeDeltaField(default=datetime.timedelta(days=_cfg['notification_backup_age_days_default']))
 
     @property
     def path(self):
@@ -461,6 +471,7 @@ class RepoLog(LogBase):
         return [line.format_line() for line in cls.get_logs_for_user(user)]
 
     '''Keeps the last 100 log entries of each type'''
+
     @classmethod
     def cleanup_logs(cls):
         for repo in Repository.get_all():
@@ -468,9 +479,9 @@ class RepoLog(LogBase):
                 # Delete all but the last 100 entries of each operation
                 # DELETE FROM mytable WHERE ROWID IN (SELECT ROWID FROM mytable ORDER BY ROWID DESC LIMIT -1 OFFSET 100)
                 old_logs = RepoLog.select().where(
-                        (RepoLog.repo == repo) &
-                        (RepoLog.operation == operation)
-                    ).order_by(RepoLog.id.desc()).offset(100)
+                    (RepoLog.repo == repo) &
+                    (RepoLog.operation == operation)
+                ).order_by(RepoLog.id.desc()).offset(100)
                 q = RepoLog.delete().where(RepoLog.id.in_(old_logs))
                 q.execute()
 

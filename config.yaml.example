@@ -7,3 +7,4 @@ borg_executable: 'borg'
 admin_contact: 'borg <borg@example.net>'
 server_name: 'borgcube'
 notification_mail: 'borgcube@example.net'
+notification_old_backups_days_default: 2
