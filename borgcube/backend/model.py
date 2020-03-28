@@ -304,11 +304,11 @@ class Repository(LockableObject):
             RepoLog.log(repo, LogOperation.CREATE_REPO, name)
         return repo
 
-    def delete_instance(self, **kwargs):
+    def delete_instance(self, recursive=True, **kwargs):
         with _db.atomic():
             _storage.delete_repo(self.user.name, self.name)
             RepoLog.log(self, LogOperation.DELETE_REPO, str(self.name))
-            return super().delete_instance(**kwargs)
+            return super().delete_instance(**kwargs, recursive=recursive)
 
     @classmethod
     def get_all_by_user(cls, user: User) -> List['Repository']:
