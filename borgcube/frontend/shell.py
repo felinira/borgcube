@@ -254,7 +254,7 @@ class Shell(object):
             args.repo.max_age = datetime.timedelta(days=args.days)
             args.repo.save()
             _echo(f"Successfully set repository '{args.repo.name}' notification time "
-                  f"to {args.days}\n", fg=COLOR_SUCCESS)
+                  f"to {args.days} days\n", fg=COLOR_SUCCESS)
         except DatabaseError as e:
             raise ShellCommandError(f"Can't set repository notification time: {e}")
 
