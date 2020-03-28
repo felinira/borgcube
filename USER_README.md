@@ -2,19 +2,21 @@
 
 You have a new account on a borgcube host and want to know how to use it? This guide is for you!
 
-## First Login
+## Getting started
 
 ### Prerequisites
 
 Your server administrator should have sent you credentials to log in to your new borgcube account.
 You have already sent your SSH public key to your borgcube admin and they set it up.
 
-### First login
+### Login
 
 To login simply run
 ```shell script
 $ ssh borg@<borgcube_host>
 ```
+
+### Create Repository
 
 You will be greeted by the borgcube host. You now need to create a repository:
 ```shell script
@@ -24,7 +26,13 @@ repo create <name> <quota in GB>
 for <name> substitute your repository name (choose a name to identify your machine).
 for <quota in GB> set a value in GB how big you want your repository to be. You can't set it higher than your user quota.
 
-Your free user quota can be viewed by issuing the `user` command and looking for the "Quota alloc" value.
+### About quota
+
+Your free user quota can be viewed by issuing the `user` command and looking for the "Quota alloc" value. There are two
+quota values: One for each repository and one for each user. The system administrator sets your user quota which you can
+allocate to your repositories at will.
+
+### SSH keys
 
 Your new repo also needs an SSH key. You need to generate a new one on your client machine:
 ```shell script
@@ -37,6 +45,8 @@ repo keys set_rw_key <ssh pubkey>
 ```
 
 Substitute <ssh pubkey> with the contents of your `~/.ssh/borgcube.pub` file.
+
+### Set up borg
 
 Now you can create a repository:
 ```shell script
