@@ -3,7 +3,6 @@ import sys
 import pwd
 import os
 
-from borgcube.frontend.commandline import Commandline
 from borgcube.backend.config import cfg as _cfg
 from borgcube.exception import BorgcubeError
 
@@ -25,8 +24,8 @@ def drop_privileges():
     os.setgroups([])
 
     # Try setting the new uid/gid
-    os.setgid(uid)
-    os.setuid(gid)
+    os.setgid(gid)
+    os.setuid(uid)
 
     # Ensure a umask
     os.umask(0o022)
@@ -36,6 +35,7 @@ def main():
     try:
         drop_privileges()
 
+        from borgcube.frontend.commandline import Commandline
         cmd = Commandline(os.environ.copy(), sys.argv)
         cmd.run()
     except BorgcubeError as e:
