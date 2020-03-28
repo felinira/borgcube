@@ -49,6 +49,10 @@ class BorgRepo(object):
             return hints
         return None
 
+    @property
+    def transaction_id(self):
+        return self.__repo.get_index_transaction_id()
+
     @contextmanager
     def open_locked(self):
         try:
@@ -126,8 +130,17 @@ class Storage(object):
 
     def get_quota_used(self, repo):
         borg_repo = self.get_borg_repo(repo)
-        with borg_repo.open_no_lock():
-            return borg_repo.quota_used
+        if borg_repo.is_repo:
+            with borg_repo.open_no_lock():
+                return borg_repo.quota_used
+        return 0
+
+    def get_repo_transaction_id(self, repo):
+        borg_repo = self.get_borg_repo(repo)
+        if borg_repo.is_repo:
+            with borg_repo.open_no_lock():
+                return borg_repo.transaction_id
+        return None
 
     def set_new_quota(self, repo, new_quota):
         borg_repo = self.get_borg_repo(repo)

@@ -41,5 +41,14 @@ class ConfigFileDoesNotExistError(BorgcubeError):
 class DatabaseError(BorgcubeError):
     pass
 
+
 class DatabaseObjectLockedError(DatabaseError):
+    pass
+
+
+class NotificationError(BorgcubeError):
+    pass
+
+
+class NotificationSendmailError(NotificationError):
     pass

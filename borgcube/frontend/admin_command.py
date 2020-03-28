@@ -1,6 +1,10 @@
 import argparse
+from datetime import datetime, timedelta
+
 from borgcube.backend.model import User, DatabaseError, UserLog, Repository, RepoLog, AdminLog
 from borgcube.backend.authorized_keys import AuthorizedKeyType, AuthorizedKeysFile
+from borgcube.backend.notification import NotificationDispatcher
+from borgcube.enum import LogOperation
 from borgcube.exception import AdminCommandError
 from borgcube.frontend.base_command import BaseCommand
 from borgcube.frontend.shell import Shell
@@ -13,6 +17,9 @@ class AdminCommand(BaseCommand):
         parser = argparse.ArgumentParser(description='Borgcube Backup Server')
         parser.set_defaults(func=None)
         subparsers = parser.add_subparsers()
+
+        parse_cron = subparsers.add_parser('cron')
+        parse_cron.set_defaults(func=self._command_cron)
 
         parse_log = subparsers.add_parser('log')
         parse_log.set_defaults(func=self._command_log_read, logfile=None)
@@ -163,6 +170,12 @@ class AdminCommand(BaseCommand):
         print(f"Launching shell for user: '{user.name}'")
         shell = Shell(self)
         shell.run()
+
+    @staticmethod
+    def _command_cron():
+        # Check for last successful backup date
+        notification_dispatcher = NotificationDispatcher()
+        notification_dispatcher.cron()
 
     def run(self):
         if self.args.func:

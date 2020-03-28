@@ -109,26 +109,32 @@ class RemoteCommand(BaseCommand):
             ]
 
         try:
-            with self.repo.lock():
-                RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
+            transaction_id_before = self.repo.transaction_id
+            RepoLog.log(self.repo, LogOperation.SERVE_REPO_BEGIN, " ".join(command))
 
-                proc = Popen(
-                    command,
-                    stderr=sys.stderr,
-                    stdout=sys.stdout,
-                    stdin=sys.stdin,
-                    cwd=self.user.path,
-                    env=self._stripped_env
-                )
+            proc = Popen(
+                command,
+                stderr=sys.stderr,
+                stdout=sys.stdout,
+                stdin=sys.stdin,
+                cwd=self.user.path,
+                env=self._stripped_env
+            )
 
-                proc.wait()
-                if proc.returncode == 0:
-                    RepoLog.log(self.repo, LogOperation.SERVE_REPO_SUCCESS, self.key_type.name)
-                else:
-                    RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
-                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_BEGIN, f"{self.repo.size_gb} GB")
-                self.repo.calculate_repo_size()
-                RepoLog.log(self.repo, LogOperation.CALC_QUOTA_END, f"{self.repo.size_gb} GB")
+            proc.wait()
+            new_transaction_id = self.repo.transaction_id
+
+            if proc.returncode == 0:
+                RepoLog.log(self.repo, LogOperation.SERVE_REPO_SUCCESS, self.key_type.name)
+                if transaction_id_before and new_transaction_id and new_transaction_id > transaction_id_before:
+                    RepoLog.log(self.repo, LogOperation.SERVE_MODIFY_SUCCESS, f"Transaction {new_transaction_id}")
+            else:
+                RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
+                if transaction_id_before and new_transaction_id and new_transaction_id > transaction_id_before:
+                    RepoLog.log(self.repo, LogOperation.SERVE_MODIFY_ABORT, f"Transaction {new_transaction_id}")
+            RepoLog.log(self.repo, LogOperation.CALC_QUOTA_BEGIN, f"{self.repo.size_gb} GB")
+            self.repo.calculate_repo_size()
+            RepoLog.log(self.repo, LogOperation.CALC_QUOTA_END, f"{self.repo.size_gb} GB")
         except DatabaseObjectLockedError:
             raise RemoteCommandError("Can't start borg serve: Repository is already in use.")
         return proc.returncode

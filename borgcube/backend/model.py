@@ -2,6 +2,8 @@ import datetime
 import math
 import os
 from time import time, sleep
+from typing import Optional, List
+
 import psutil
 from peewee import *
 from peewee import IntegerField
@@ -299,6 +301,10 @@ class Repository(LockableObject):
             return super().delete_instance(**kwargs)
 
     @classmethod
+    def get_all_by_user(cls, user: User) -> List['Repository']:
+        return cls.select().where(cls.user == user)
+
+    @classmethod
     def get_by_name(cls, name: str, user: User) -> 'Repository':
         try:
             return cls.get((cls.name == name) & (cls.user == user))
@@ -358,6 +364,10 @@ class Repository(LockableObject):
     @quota_gb.setter
     def quota_gb(self, new_quota):
         self.quota = new_quota * 1000 * 1000 * 1000
+
+    @property
+    def transaction_id(self):
+        return _storage.get_repo_transaction_id(self)
 
 
 class LogBase(BaseModel):
@@ -424,11 +434,11 @@ class RepoLog(LogBase):
             return []
 
     @classmethod
-    def get_last_entry_for_repo_with_operation(cls, repo, operation):
-        try:
-            return cls.get_logs_for_repo_with_operation(repo, operation)[-1]
-        except DoesNotExist:
-            return None
+    def get_last_entry_for_repo_with_operation(cls, repo, operation) -> Optional['RepoLog']:
+        logs = cls.get_logs_for_repo_with_operation(repo, operation)
+        if len(logs) > 0:
+            return logs[-1]
+        return None
 
     @classmethod
     def get_logs_for_user(cls, user):
