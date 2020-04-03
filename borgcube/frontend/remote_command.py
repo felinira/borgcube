@@ -1,6 +1,7 @@
 from subprocess import Popen
 import argparse
 import sys
+import shlex
 
 from borgcube.backend.config import cfg as _cfg
 from borgcube.backend.model import User, Repository, RepoLog, LogOperation
@@ -95,6 +96,11 @@ class RemoteCommand(BaseCommand):
             else:
                 return self._run_shell
         elif command == RemoteCommandType.BORGCUBE_COMMAND_BORG_SERVE.value:
+            if 'SSH_ORIGINAL_COMMAND' not in self.env:
+                raise RemoteCommandError(f"You are trying to connect to borgcube shell with your repo key. This is not "
+                                         f"supported.")
+            elif shlex.split(self.env['SSH_ORIGINAL_COMMAND'])[1] != 'serve':
+                raise RemoteCommandError(f"You are only allowed to run borg serve!")
             return self._run_borg_command
         raise RemoteCommandError(f'Not permitted to run command: {command}. '
                                  f'Are you running this via borgcube authorized_keys file?')
@@ -135,9 +141,6 @@ class RemoteCommand(BaseCommand):
                 RepoLog.log(self.repo, LogOperation.SERVE_REPO_ABORT, self.key_type.name)
                 if transaction_id_before and new_transaction_id and new_transaction_id > transaction_id_before:
                     RepoLog.log(self.repo, LogOperation.SERVE_MODIFY_ABORT, f"Transaction {new_transaction_id}")
-            RepoLog.log(self.repo, LogOperation.CALC_QUOTA_BEGIN, f"{self.repo.size_gb} GB")
-            self.repo.calculate_repo_size()
-            RepoLog.log(self.repo, LogOperation.CALC_QUOTA_END, f"{self.repo.size_gb} GB")
         except DatabaseObjectLockedError:
             raise RemoteCommandError("Can't start borg serve: Repository is already in use.")
         return proc.returncode
