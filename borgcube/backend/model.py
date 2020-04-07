@@ -358,10 +358,10 @@ class Repository(LockableObject):
     @property
     def quota_used(self) -> int:
         borg_repo = _storage.get_borg_repo(self)
-        if borg_repo is None:
-            return 0
-        with borg_repo.open_no_lock():
-            return borg_repo.quota_used
+        if borg_repo.is_repo:
+            with borg_repo.open_no_lock():
+                return borg_repo.quota_used
+        return 0
 
     @property
     def quota_used_gb(self) -> int:
