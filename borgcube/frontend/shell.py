@@ -224,7 +224,8 @@ class Shell(object):
             if args.key_type == 'append':
                 old_key = args.repo.append_ssh_key
                 args.repo.append_ssh_key = key
-                if args.repo.rw_ssh_key and args.repo.rw_ssh_key.fingerprint == args.repo.append_ssh_key.fingerprint:
+                if args.repo.rw_ssh_key \
+                        and args.repo.rw_ssh_key.hash_sha512() == args.repo.append_ssh_key.hash_sha512():
                     args.repo.append_ssh_key = old_key
                     raise ShellCommandError(f"Can't set repo '{args.repo.name}' append key to same value as read/write "
                                             f"key. If you only want to use one key you only need to set the read/write "
@@ -233,7 +234,8 @@ class Shell(object):
             else:
                 old_key = args.repo.rw_ssh_key
                 args.repo.rw_ssh_key = key
-                if args.repo.append_ssh_key and args.repo.append_ssh_key.fingerprint == args.repo.rw_ssh_key.fingerprint:
+                if args.repo.append_ssh_key \
+                        and args.repo.append_ssh_key.hash_sha512() == args.repo.rw_ssh_key.hash_sha512():
                     args.repo.rw_ssh_key = old_key
                     raise ShellCommandError(f"Can't set repo '{args.repo.name}' read/Write key to same value as append "
                                             f"key. If you only want to use one key you only need to set the read/write "
