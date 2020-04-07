@@ -37,7 +37,8 @@ def main():
 
         from borgcube.frontend.commandline import Commandline
         cmd = Commandline(os.environ.copy(), sys.argv)
-        cmd.run()
+        ret = cmd.run()
+        exit(ret)
     except BorgcubeError as e:
         if sys.gettrace():
             # Raise when debugging

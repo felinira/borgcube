@@ -105,7 +105,7 @@ class RemoteCommand(BaseCommand):
         raise RemoteCommandError(f'Not permitted to run command: {command}. '
                                  f'Are you running this via borgcube authorized_keys file?')
 
-    def _run_borg_command(self):
+    def _run_borg_command(self) -> int:
         command = [
             _cfg['borg_executable'],
             'serve',
@@ -145,14 +145,15 @@ class RemoteCommand(BaseCommand):
             raise RemoteCommandError("Can't start borg serve: Repository is already in use.")
         return proc.returncode
 
-    def _run_shell(self):
+    def _run_shell(self) -> int:
         if self.key_type not in [AuthorizedKeyType.USER, AuthorizedKeyType.USER_BACKUP]:
             raise RemoteCommandError(f"You are not permitted to connect to borgcube shell with your repository keys. "
                                      f"Please use your associated user key.")
         shell = Shell(self)
         shell.run()
+        return 0
 
-    def run(self):
+    def run(self) -> int:
         if not self.args.command:
             raise CommandMissingBorgcubeEnvironmentVariableError('SSH command')
-        self.args.command()
+        return self.args.command()

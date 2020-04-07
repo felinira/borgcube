@@ -182,8 +182,9 @@ class AdminCommand(BaseCommand):
         notification_dispatcher.cron()
         RepoLog.cleanup_logs()
 
-    def run(self):
+    def run(self) -> int:
         if self.args.func:
             self.args.func()
+            return 0
         else:
             raise AdminCommandError("No action specified. Run --help for info.")

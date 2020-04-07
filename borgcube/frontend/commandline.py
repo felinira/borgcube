@@ -34,10 +34,10 @@ class Commandline(object):
             raise CommandEnvironmentError(error_str)
         return is_remote
 
-    def run(self):
+    def run(self) -> int:
         if self.cmd:
             try:
-                self.cmd.run()
+                return self.cmd.run()
             except (CommandError, DatabaseError) as e:
                 print(e)
         else:
