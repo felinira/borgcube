@@ -126,9 +126,7 @@ class Storage(object):
 
     def get_borg_repo(self, repo):
         borg_repo = BorgRepo(self.repo_path(repo.user.name, repo.name))
-        if borg_repo.is_repo:
-            return borg_repo
-        return None
+        return borg_repo
 
     def get_quota_used(self, repo):
         borg_repo = self.get_borg_repo(repo)
@@ -146,11 +144,10 @@ class Storage(object):
 
     def set_new_quota(self, repo, new_quota):
         borg_repo = self.get_borg_repo(repo)
-        if borg_repo is None:
-            return
-        with borg_repo.open_locked():
-            if borg_repo.quota_used <= new_quota:
-                borg_repo.set_new_quota_safe(new_quota)
+        if borg_repo.is_repo:
+            with borg_repo.open_locked():
+                if borg_repo.quota_used <= new_quota:
+                    borg_repo.set_new_quota_safe(new_quota)
 
     def assert_consistency_for_user(self, user):
         user_path = self.user_path(user.name)
