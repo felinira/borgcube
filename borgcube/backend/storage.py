@@ -118,9 +118,6 @@ class Storage(object):
     def repo_path(self, user_name, repo_name):
         return self.backups_path.joinpath(user_name).joinpath(repo_name)
 
-    def create_repo(self, user_name, repo_name):
-        self.repo_path(user_name, repo_name).mkdir()
-
     def delete_repo(self, user_name, repo_name):
         shutil.rmtree(self.repo_path(user_name, repo_name))
 
@@ -158,11 +155,6 @@ class Storage(object):
         if len(repos) > user.max_repo_count:
             raise StorageInconsistencyError(f"User '{user}' is allowed to have maximum of {user.max_repo_count} "
                                             f"repos but {len(repos)} were found")
-
-        for repo in repos:
-            repo_path = user_path.joinpath(repo.name)
-            if not repo_path.is_dir():
-                raise StorageInconsistencyError(f"Repository '{repo.name}' for user '{user.name}' is missing")
 
         for file in user_path.iterdir():
             if not file.is_dir():

@@ -293,7 +293,6 @@ class Repository(LockableObject):
             raise DatabaseError("Name may only contain these characters: [a-zA-Z0-9_]")
         quota_gb = query['_quota_gb']
         with _db.atomic() as transaction:
-            _storage.create_repo(user.name, name)
             repo = super().create(**query)
             try:
                 repo.quota_gb = quota_gb
